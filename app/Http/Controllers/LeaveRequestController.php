@@ -405,6 +405,10 @@ class LeaveRequestController extends Controller
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
 
+        // Every figure below is limited to what this viewer may see, so a
+        // supervisor is not shown hospital-wide totals.
+        $viewer = auth()->user();
+
         ['month' => $month, 'year' => $year, 'selected_month' => $selectedMonth, 'start_date' => $startOfMonth, 'end_date' => $endOfMonth]
             = resolve_month_filter($request->input('month'), $request->input('year'));
 
@@ -421,15 +425,15 @@ class LeaveRequestController extends Controller
         };
 
         $summary = [
-            'pending' => LeaveRequest::query()->tap($periodScope)->where('status', 'pending')->count(),
-            'approved' => LeaveRequest::query()->tap($periodScope)->where('status', 'approved')->count(),
-            'rejected' => LeaveRequest::query()->tap($periodScope)->where('status', 'rejected')->count(),
-            'cancelled' => LeaveRequest::query()->tap($periodScope)->where('status', 'cancelled')->count(),
+            'pending' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'pending')->count(),
+            'approved' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'approved')->count(),
+            'rejected' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'rejected')->count(),
+            'cancelled' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'cancelled')->count(),
 
-            'this_month' => LeaveRequest::query()->tap($periodScope)->count(),
-            'approved_days' => (float) LeaveRequest::query()->tap($periodScope)->where('status', 'approved')->sum('total_days'),
+            'this_month' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->count(),
+            'approved_days' => (float) LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'approved')->sum('total_days'),
 
-            'today_on_leave' => LeaveRequest::query()
+            'today_on_leave' => LeaveRequest::query()->visibleTo($viewer)
                 ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
@@ -439,7 +443,7 @@ class LeaveRequestController extends Controller
                 ->count(),
         ];
 
-        $leaveTypeTotals = LeaveRequest::query()
+        $leaveTypeTotals = LeaveRequest::query()->visibleTo($viewer)
             ->tap($periodScope)
             ->select('leave_type_id', DB::raw('count(*) as total_requests'), DB::raw('sum(total_days) as total_days'))
             ->groupBy('leave_type_id')
@@ -463,7 +467,7 @@ class LeaveRequestController extends Controller
                 ];
             });
 
-        $departmentStats = LeaveRequest::query()
+        $departmentStats = LeaveRequest::query()->visibleTo($viewer)
             ->tap($periodScope)
             ->leftJoin('departments', 'departments.id', '=', 'leave_requests.department_id')
             ->select([
@@ -476,7 +480,7 @@ class LeaveRequestController extends Controller
             ->limit(8)
             ->get();
 
-        $todayLeaves = LeaveRequest::query()
+        $todayLeaves = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $today)
@@ -487,7 +491,7 @@ class LeaveRequestController extends Controller
             ->orderBy('start_date')
             ->get();
 
-        $pendingRequests = LeaveRequest::query()
+        $pendingRequests = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'pending')
             ->when($departmentId, function ($query) use ($departmentId) {
@@ -497,7 +501,7 @@ class LeaveRequestController extends Controller
             ->limit(10)
             ->get();
 
-        $upcomingLeaves = LeaveRequest::query()
+        $upcomingLeaves = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '>=', $today)
@@ -508,7 +512,7 @@ class LeaveRequestController extends Controller
             ->limit(10)
             ->get();
 
-        $recentRequests = LeaveRequest::query()
+        $recentRequests = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType', 'approver'])
             ->tap($periodScope)
             ->latest()
@@ -540,6 +544,8 @@ class LeaveRequestController extends Controller
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
 
+        $viewer = auth()->user();
+
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
         $status = $request->string('status')->toString();
@@ -555,7 +561,7 @@ class LeaveRequestController extends Controller
         $calendarStart = $startOfMonth->copy()->startOfWeek(Carbon::SUNDAY);
         $calendarEnd = $endOfMonth->copy()->endOfWeek(Carbon::SATURDAY);
 
-        $leaveRequests = LeaveRequest::query()
+        $leaveRequests = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->when($status, function ($query) use ($status) {
                 $query->where('status', $status);

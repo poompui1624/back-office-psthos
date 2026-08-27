@@ -3,40 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payslip;
+use Illuminate\Contracts\View\View;
 
 class PayslipController extends Controller
 {
-    public function show(Payslip $payslip)
+    public function show(Payslip $payslip): View
     {
-        abort_unless(auth()->user()->can('payroll.view'), 403);
+        $this->authorize('view', $payslip);
 
-        $payslip->load([
-            'payrollPeriod',
-            'employee.department',
-            'employee.position',
-            'salaryProfile',
-            'items' => function ($query) {
-                $query->orderBy('type')->orderBy('sort_order');
-            },
-        ]);
-
-        return view('payslips.show', compact('payslip'));
+        return view('payslips.show', ['payslip' => $this->loaded($payslip)]);
     }
 
-    public function print(Payslip $payslip)
+    public function print(Payslip $payslip): View
     {
-        abort_unless(auth()->user()->can('payroll.view'), 403);
+        $this->authorize('view', $payslip);
 
-        $payslip->load([
+        return view('payslips.print', ['payslip' => $this->loaded($payslip)]);
+    }
+
+    private function loaded(Payslip $payslip): Payslip
+    {
+        return $payslip->load([
             'payrollPeriod',
             'employee.department',
             'employee.position',
             'salaryProfile',
-            'items' => function ($query) {
-                $query->orderBy('type')->orderBy('sort_order');
-            },
+            'items' => fn ($query) => $query->orderBy('type')->orderBy('sort_order'),
         ]);
-
-        return view('payslips.print', compact('payslip'));
     }
 }

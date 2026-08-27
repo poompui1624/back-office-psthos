@@ -99,8 +99,13 @@ class DutyScheduleController extends Controller
         $dateFrom = $selectedMonth->copy()->startOfMonth()->toDateString();
         $dateTo = $selectedMonth->copy()->endOfMonth()->toDateString();
 
-        $scopeSchedules = function ($query) use ($dateFrom, $dateTo, $departmentId, $roleGroup) {
+        $viewer = auth()->user();
+
+        // Folded in here rather than at each call site: every dashboard figure
+        // runs through this closure, so one change scopes them all.
+        $scopeSchedules = function ($query) use ($dateFrom, $dateTo, $departmentId, $roleGroup, $viewer) {
             return $query
+                ->visibleTo($viewer)
                 ->whereDate('duty_schedules.work_date', '>=', $dateFrom)
                 ->whereDate('duty_schedules.work_date', '<=', $dateTo)
                 ->when($departmentId, function ($scheduleQuery) use ($departmentId) {
