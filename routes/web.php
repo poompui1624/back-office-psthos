@@ -32,6 +32,7 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RepairRequestController;
 use App\Http\Controllers\SalaryProfileController;
+use App\Http\Controllers\SelfServiceController;
 use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\SoftwareInventoryController;
 use App\Http\Controllers\SoftwareLicenseController;
@@ -47,6 +48,44 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Staff self-service portal
+    |--------------------------------------------------------------------------
+    |
+    | Scoped to the signed-in user's own employee record rather than to a
+    | module permission, so staff can read back what they submitted.
+    |
+    */
+    Route::prefix('me')->name('me.')->group(function () {
+        Route::get('/', [SelfServiceController::class, 'index'])
+            ->name('index');
+
+        Route::get('/leaves', [SelfServiceController::class, 'leaves'])
+            ->middleware('permission:leave.view.own')
+            ->name('leaves');
+
+        Route::get('/duties', [SelfServiceController::class, 'duties'])
+            ->middleware('permission:duty.view.own')
+            ->name('duties');
+
+        Route::get('/attendance', [SelfServiceController::class, 'attendance'])
+            ->middleware('permission:attendance.view.own')
+            ->name('attendance');
+
+        Route::get('/payslips', [SelfServiceController::class, 'payslips'])
+            ->middleware('permission:payslip.view.own')
+            ->name('payslips');
+
+        Route::get('/repairs', [SelfServiceController::class, 'repairs'])
+            ->middleware('permission:repair.view.own')
+            ->name('repairs');
+
+        Route::get('/meetings', [SelfServiceController::class, 'meetings'])
+            ->middleware('permission:meeting.view.own')
+            ->name('meetings');
+    });
+
     Route::get('/dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view')
         ->name('dashboard');

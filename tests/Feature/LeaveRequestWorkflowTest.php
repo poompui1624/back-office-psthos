@@ -41,7 +41,7 @@ function leavePayload(Employee $employee, LeaveType $type): array
 test('creating a leave request stores it as pending and logs the action', function () {
     $employee = Employee::factory()->create();
     $type = LeaveType::factory()->create();
-    $creator = userWith('leave.create');
+    $creator = userWith('leave.create', 'leave.create.any');
 
     $this->actingAs($creator)
         ->post(route('leave-requests.store'), leavePayload($employee, $type))
@@ -60,7 +60,7 @@ test('creating a leave request stores it as pending and logs the action', functi
 test('each new request gets its own running number', function () {
     $employee = Employee::factory()->create();
     $type = LeaveType::factory()->create();
-    $creator = userWith('leave.create');
+    $creator = userWith('leave.create', 'leave.create.any');
 
     foreach (range(1, 3) as $ignored) {
         $this->actingAs($creator)->post(route('leave-requests.store'), leavePayload($employee, $type));
@@ -179,7 +179,7 @@ test('approvers are notified when a request is submitted', function () {
     $type = LeaveType::factory()->create();
     $approver = userWith('leave.approve');
 
-    $this->actingAs(userWith('leave.create'))
+    $this->actingAs(userWith('leave.create', 'leave.create.any'))
         ->post(route('leave-requests.store'), leavePayload($employee, $type));
 
     expect($approver->appNotifications()->where('type', 'leave')->exists())->toBeTrue();
@@ -218,7 +218,7 @@ test('submitting works even when no approver permission has been seeded', functi
     // into a 500 on a install that has not been seeded yet.
     expect(Permission::where('name', 'leave.approve')->exists())->toBeFalse();
 
-    $this->actingAs(userWith('leave.create'))
+    $this->actingAs(userWith('leave.create', 'leave.create.any'))
         ->post(route('leave-requests.store'), leavePayload($employee, $type))
         ->assertRedirect(route('leave-requests.index'));
 

@@ -14,6 +14,18 @@
 
         $navSections = [
             [
+                'label' => 'ของฉัน',
+                'items' => [
+                    ['label' => 'ภาพรวมของฉัน', 'route' => 'me.index', 'active' => 'me.index', 'permission' => null],
+                    ['label' => 'ใบลาของฉัน', 'route' => 'me.leaves', 'active' => 'me.leaves', 'permission' => 'leave.view.own'],
+                    ['label' => 'เวรของฉัน', 'route' => 'me.duties', 'active' => 'me.duties', 'permission' => 'duty.view.own'],
+                    ['label' => 'ลงเวลาของฉัน', 'route' => 'me.attendance', 'active' => 'me.attendance', 'permission' => 'attendance.view.own'],
+                    ['label' => 'สลิปของฉัน', 'route' => 'me.payslips', 'active' => 'me.payslips', 'permission' => 'payslip.view.own'],
+                    ['label' => 'แจ้งซ่อมของฉัน', 'route' => 'me.repairs', 'active' => 'me.repairs', 'permission' => 'repair.view.own'],
+                    ['label' => 'จองห้องของฉัน', 'route' => 'me.meetings', 'active' => 'me.meetings', 'permission' => 'meeting.view.own'],
+                ],
+            ],
+            [
                 'label' => 'ภาพรวม',
                 'items' => [
                     ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'permission' => 'dashboard.view'],
@@ -108,7 +120,8 @@
                 @foreach ($navSections as $section)
                     @php
                         $visibleItems = collect($section['items'])
-                            ->filter(fn ($item) => Route::has($item['route']) && auth()->user()?->can($item['permission']));
+                            ->filter(fn ($item) => Route::has($item['route'])
+                                && ($item['permission'] === null || auth()->user()?->can($item['permission'])));
                     @endphp
 
                     @if ($visibleItems->isNotEmpty())

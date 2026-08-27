@@ -79,6 +79,7 @@ class RolePermissionSeeder extends Seeder
             'leave.update',
             'leave.delete',
             'leave.approve',
+            'leave.create.any',
 
             'attendance.view',
             'attendance.create',
@@ -254,6 +255,8 @@ class RolePermissionSeeder extends Seeder
             'payroll.view.all',
             'employee.view.all',
 
+            'leave.create.any',
+
         ]);
 
         $it->syncPermissions([
@@ -319,6 +322,8 @@ class RolePermissionSeeder extends Seeder
             'payroll.view.all',
             'employee.view.all',
 
+            'leave.create.any',
+
         ]);
 
         // A head of department approves for their own unit. Withholding the
@@ -356,6 +361,8 @@ class RolePermissionSeeder extends Seeder
             'repair.view.own',
             'meeting.view.own',
             'payslip.view.own',
+            'leave.create.any',
+
         ]);
 
         $staff->syncPermissions([

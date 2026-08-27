@@ -297,6 +297,10 @@ class LeaveRequestController extends Controller
         return [
             'employees' => Employee::query()
                 ->where('status', 'active')
+                ->unless(auth()->user()?->can('leave.create.any'), function ($query) {
+                    // Staff file for themselves only, so the picker holds one option.
+                    $query->whereKey(auth()->user()?->employee_id);
+                })
                 ->orderBy('employee_code')
                 ->get(),
 
@@ -314,7 +318,7 @@ class LeaveRequestController extends Controller
 
     private function validateLeaveRequest(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'leave_type_id' => ['required', 'exists:leave_types,id'],
@@ -326,6 +330,19 @@ class LeaveRequestController extends Controller
             'reason' => ['nullable', 'string'],
             'contact_during_leave' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // Without leave.create.any the request is always for the filer, whatever
+        // employee_id the form posted.
+        if (! auth()->user()?->can('leave.create.any')) {
+            $employeeId = auth()->user()?->employee_id;
+
+            abort_if($employeeId === null, 403, 'บัญชีนี้ยังไม่ได้เชื่อมกับทะเบียนบุคลากร');
+
+            $validated['employee_id'] = $employeeId;
+            unset($validated['department_id']);
+        }
+
+        return $validated;
     }
 
     private function generateRequestNo(): string
