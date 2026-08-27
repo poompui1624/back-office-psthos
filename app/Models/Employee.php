@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'employee_code',
@@ -88,5 +90,10 @@ class Employee extends Model
     public function payslips(): HasMany
     {
         return $this->hasMany(Payslip::class);
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'employee';
     }
 }

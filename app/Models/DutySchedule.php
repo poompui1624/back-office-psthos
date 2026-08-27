@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DutySchedule extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -53,5 +55,10 @@ class DutySchedule extends Model
     public function actions(): HasMany
     {
         return $this->hasMany(DutyScheduleAction::class);
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'duty';
     }
 }

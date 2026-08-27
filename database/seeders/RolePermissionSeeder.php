@@ -108,6 +108,21 @@ class RolePermissionSeeder extends Seeder
             'ita.edit',
             'ita.delete',
             'ita.topic.manage',
+
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
+
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
         ];
 
         foreach ($permissions as $permission) {
@@ -139,6 +154,11 @@ class RolePermissionSeeder extends Seeder
 
         $hr = Role::firstOrCreate([
             'name' => 'hr',
+            'guard_name' => 'web',
+        ]);
+
+        $supervisor = Role::firstOrCreate([
+            'name' => 'supervisor',
             'guard_name' => 'web',
         ]);
 
@@ -226,6 +246,14 @@ class RolePermissionSeeder extends Seeder
             'ita.create',
             'ita.edit',
             'ita.topic.manage',
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
+
         ]);
 
         $it->syncPermissions([
@@ -283,6 +311,51 @@ class RolePermissionSeeder extends Seeder
             'leave.create',
             'leave.update',
             'leave.approve',
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
+
+        ]);
+
+        // A head of department approves for their own unit. Withholding the
+        // .view.all permissions is what keeps them scoped to it.
+        $supervisor->syncPermissions([
+            'dashboard.view',
+
+            'attachment.upload',
+            'attachment.download',
+
+            'employee.view',
+
+            'leave.view',
+            'leave.create',
+            'leave.update',
+            'leave.approve',
+
+            'duty.view',
+            'duty.create',
+            'duty.update',
+
+            'attendance.view',
+
+            'repair.view',
+            'repair.create',
+
+            'asset.view',
+
+            'meeting.view',
+            'meeting.create',
+
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
         ]);
 
         $staff->syncPermissions([
@@ -292,6 +365,13 @@ class RolePermissionSeeder extends Seeder
             'repair.create',
             'meeting.create',
             'leave.create',
+
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
         ]);
 
         $user = User::first();

@@ -6,8 +6,8 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Models\User;
 use App\Services\AppNotificationService;
+use App\Services\DocumentNumberService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -23,6 +23,7 @@ class LeaveRequestController extends Controller
         $status = $request->string('status')->toString();
 
         $leaveRequests = LeaveRequest::query()
+            ->visibleTo(auth()->user())
             ->with(['employee', 'department', 'leaveType', 'creator', 'approver'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -329,20 +330,14 @@ class LeaveRequestController extends Controller
 
     private function generateRequestNo(): string
     {
-        $prefix = 'LV'.now()->format('Ymd');
-
-        $count = LeaveRequest::where('request_no', 'like', $prefix.'%')->count() + 1;
-
-        return $prefix.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return DocumentNumberService::nextForToday('LV', 'leave_requests', 'request_no');
     }
 
     private function notifyLeaveCreated(LeaveRequest $leaveRequest): void
     {
         $leaveRequest->load(['employee', 'leaveType']);
 
-        $users = User::permission('leave.approve')
-            ->where('is_active', true)
-            ->get();
+        $users = AppNotificationService::activeUsersWithPermission('leave.approve');
 
         foreach ($users as $user) {
             AppNotificationService::sendToUser(
@@ -393,26 +388,11 @@ class LeaveRequestController extends Controller
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
 
-        $month = (int) $request->input('month', now()->month);
-        $year = (int) $request->input('year', now()->year + 543);
+        ['month' => $month, 'year' => $year, 'selected_month' => $selectedMonth, 'start_date' => $startOfMonth, 'end_date' => $endOfMonth]
+            = resolve_month_filter($request->input('month'), $request->input('year'));
+
         $departmentId = $request->string('department_id')->toString();
-
-        if ($month < 1 || $month > 12) {
-            $month = now()->month;
-        }
-
-        if ($year < 2400) {
-            $year += 543;
-        }
-
-        if ($year < 2500 || $year > 2700) {
-            $year = now()->year + 543;
-        }
-
-        $selectedMonth = Carbon::create($year - 543, $month, 1)->startOfMonth();
         $today = now()->toDateString();
-        $startOfMonth = $selectedMonth->copy()->startOfMonth()->toDateString();
-        $endOfMonth = $selectedMonth->copy()->endOfMonth()->toDateString();
 
         $periodScope = function ($query) use ($startOfMonth, $endOfMonth, $departmentId) {
             return $query

@@ -19,6 +19,7 @@ class AssetController extends Controller
         $status = $request->string('status')->toString();
 
         $assets = Asset::query()
+            ->visibleTo(auth()->user())
             ->with(['category', 'department', 'responsibleEmployee'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {

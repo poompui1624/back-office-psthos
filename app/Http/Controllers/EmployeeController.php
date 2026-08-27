@@ -17,6 +17,7 @@ class EmployeeController extends Controller
         $search = $request->string('search')->toString();
 
         $employees = Employee::query()
+            ->visibleTo(auth()->user())
             ->with(['department', 'position'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {

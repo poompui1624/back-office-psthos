@@ -23,32 +23,17 @@ class DutyScheduleController extends Controller
         $search = $request->string('search')->toString();
         $departmentId = $request->string('department_id')->toString();
         $roleGroup = $request->string('role_group')->toString();
-        $month = (int) $request->input('month', now()->month);
-        $year = (int) $request->input('year', now()->year);
+        ['month' => $month, 'year' => $year, 'selected_month' => $selectedMonth, 'start_date' => $dateFrom, 'end_date' => $dateTo]
+            = resolve_month_filter($request->input('month'), $request->input('year'));
 
         $perPage = (int) $request->input('per_page', 25);
-
-        if ($month < 1 || $month > 12) {
-            $month = now()->month;
-        }
-
-        if ($year < 2400) {
-            $year += 543;
-        }
-
-        if ($year < 2500 || $year > 2700) {
-            $year = now()->year + 543;
-        }
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
             $perPage = 25;
         }
 
-        $selectedMonth = Carbon::create($year - 543, $month, 1)->startOfMonth();
-        $dateFrom = $selectedMonth->copy()->startOfMonth()->toDateString();
-        $dateTo = $selectedMonth->copy()->endOfMonth()->toDateString();
-
         $schedules = DutySchedule::query()
+            ->visibleTo(auth()->user())
             ->with(['employee', 'department', 'shiftType', 'assignedBy'])
             ->when($search, function ($query) use ($search) {
                 $query->whereHas('employee', function ($employeeQuery) use ($search) {
@@ -389,6 +374,7 @@ class DutyScheduleController extends Controller
         $calendarEnd = $endOfMonth->copy()->endOfWeek(Carbon::SATURDAY);
 
         $schedules = DutySchedule::query()
+            ->visibleTo(auth()->user())
             ->with([
                 'employee',
                 'department',

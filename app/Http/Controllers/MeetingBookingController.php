@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\MeetingBooking;
 use App\Models\MeetingRoom;
+use App\Services\DocumentNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -371,11 +372,7 @@ class MeetingBookingController extends Controller
 
     private function generateBookingNo(): string
     {
-        $prefix = 'MR' . now()->format('Ymd');
-
-        $count = MeetingBooking::where('booking_no', 'like', $prefix . '%')->count() + 1;
-
-        return $prefix . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return DocumentNumberService::nextForToday('MR', 'meeting_bookings', 'booking_no');
     }
 
     public function printView(MeetingBooking $meetingBooking)

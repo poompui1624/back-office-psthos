@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Asset extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'asset_code',
@@ -88,5 +90,10 @@ class Asset extends Model
     public function repairRequests(): MorphMany
     {
         return $this->morphMany(RepairRequest::class, 'repairable');
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'asset';
     }
 }
