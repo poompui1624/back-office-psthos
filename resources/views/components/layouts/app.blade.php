@@ -7,274 +7,153 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <div class="min-h-screen flex">
-        @php
-            $hospitalLogo = class_exists(\App\Models\SystemSetting::class)
-                ? \App\Models\SystemSetting::where('key', 'hospital_logo')->value('value')
-                : null;
+<body class="bg-slate-100 text-slate-900">
+    @php
+        $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
+        $name = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
 
-            $hospitalName = class_exists(\App\Models\SystemSetting::class)
-                ? \App\Models\SystemSetting::where('key', 'hospital_name')->value('value')
-                : config('app.name', 'Hospital Backoffice');
-        @endphp
+        $navSections = [
+            [
+                'label' => 'ภาพรวม',
+                'items' => [
+                    ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'permission' => 'dashboard.view'],
+                    ['label' => 'รายการอนุมัติ', 'route' => 'approvals.index', 'active' => 'approvals.*', 'permission' => 'approval.view'],
+                ],
+            ],
+            [
+                'label' => 'ข้อมูลหลัก',
+                'items' => [
+                    ['label' => 'หน่วยงาน', 'route' => 'departments.index', 'active' => 'departments.*', 'permission' => 'department.view'],
+                    ['label' => 'ตำแหน่ง', 'route' => 'positions.index', 'active' => 'positions.*', 'permission' => 'position.view'],
+                    ['label' => 'บุคลากร', 'route' => 'employees.index', 'active' => 'employees.*', 'permission' => 'employee.view'],
+                    ['label' => 'ผู้ใช้งานระบบ', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'user.view'],
+                    ['label' => 'ตั้งค่าระบบ', 'route' => 'system-settings.index', 'active' => 'system-settings.*', 'permission' => 'setting.view'],
+                    ['label' => 'Audit Log', 'route' => 'audit-logs.index', 'active' => 'audit-logs.*', 'permission' => 'audit.view'],
+                ],
+            ],
+            [
+                'label' => 'งานบุคคล',
+                'items' => [
+                    ['label' => 'Dashboard การลา', 'route' => 'leave-requests.dashboard', 'active' => 'leave-requests.dashboard', 'permission' => 'leave.view'],
+                    ['label' => 'รายการลา', 'route' => 'leave-requests.index', 'active' => 'leave-requests.index', 'permission' => 'leave.view'],
+                    ['label' => 'ปฏิทินลา', 'route' => 'leave-requests.calendar', 'active' => 'leave-requests.calendar', 'permission' => 'leave.view'],
+                    ['label' => 'ประเภทการลา', 'route' => 'leave-types.index', 'active' => 'leave-types.*', 'permission' => 'leave.view'],
+                    ['label' => 'Dashboard เวลา', 'route' => 'attendance-summaries.dashboard', 'active' => 'attendance-summaries.dashboard', 'permission' => 'attendance.view'],
+                    ['label' => 'เวลาเข้างาน', 'route' => 'attendance-logs.index', 'active' => 'attendance-logs.*', 'permission' => 'attendance.view'],
+                    ['label' => 'สรุปเวลาทำงาน', 'route' => 'attendance-summaries.index', 'active' => 'attendance-summaries.index', 'permission' => 'attendance.view'],
+                    ['label' => 'เครื่องสแกนนิ้ว', 'route' => 'attendance-devices.index', 'active' => 'attendance-devices.*', 'permission' => 'attendance.view'],
+                    ['label' => 'Dashboard ตารางเวร', 'route' => 'duty-schedules.index', 'active' => 'duty-schedules.index', 'permission' => 'duty.view'],
+                    ['label' => 'ปฏิทินตารางเวร', 'route' => 'duty-schedules.calendar', 'active' => 'duty-schedules.calendar', 'permission' => 'duty.view'],
+                    ['label' => 'สร้างเวรหลายรายการ', 'route' => 'duty-schedules.bulk-create', 'active' => 'duty-schedules.bulk-create', 'permission' => 'duty.create'],
+                    ['label' => 'ประเภทเวร', 'route' => 'shift-types.index', 'active' => 'shift-types.*', 'permission' => 'duty.view'],
+                ],
+            ],
+            [
+                'label' => 'บริการและทรัพย์สิน',
+                'items' => [
+                    ['label' => 'จองห้องประชุม', 'route' => 'meeting-bookings.index', 'active' => 'meeting-bookings.*', 'permission' => 'meeting.view'],
+                    ['label' => 'ห้องประชุม', 'route' => 'meeting-rooms.index', 'active' => 'meeting-rooms.*', 'permission' => 'meeting.view'],
+                    ['label' => 'แจ้งซ่อม', 'route' => 'repair-requests.index', 'active' => 'repair-requests.*', 'permission' => 'repair.view'],
+                    ['label' => 'Repair Kanban', 'route' => 'repair-requests.kanban', 'active' => 'repair-requests.kanban', 'permission' => 'repair.view'],
+                    ['label' => 'ทะเบียนพัสดุ', 'route' => 'assets.index', 'active' => 'assets.*', 'permission' => 'asset.view'],
+                    ['label' => 'หมวดหมู่พัสดุ', 'route' => 'asset-categories.index', 'active' => 'asset-categories.*', 'permission' => 'asset.view'],
+                    ['label' => 'โอนย้ายพัสดุ', 'route' => 'asset-movements.index', 'active' => 'asset-movements.*', 'permission' => 'asset.view'],
+                    ['label' => 'ทะเบียนคอมพิวเตอร์', 'route' => 'computers.index', 'active' => 'computers.*', 'permission' => 'computer.view'],
+                    ['label' => 'Computer Agents', 'route' => 'computer-agents.index', 'active' => 'computer-agents.*', 'permission' => 'computer.agent_manage'],
+                    ['label' => 'Software Inventory', 'route' => 'software-inventory.index', 'active' => 'software-inventory.*', 'permission' => 'software.view'],
+                    ['label' => 'Software Products', 'route' => 'software-products.index', 'active' => 'software-products.*', 'permission' => 'software.view'],
+                    ['label' => 'Software Licenses', 'route' => 'software-licenses.index', 'active' => 'software-licenses.*', 'permission' => 'software.view'],
+                ],
+            ],
+            [
+                'label' => 'การเงินและเอกสาร',
+                'items' => [
+                    ['label' => 'เงินเดือน / สลิป', 'route' => 'payroll-periods.index', 'active' => 'payroll-periods.*', 'permission' => 'payroll.view'],
+                    ['label' => 'ตั้งค่าเงินเดือน', 'route' => 'salary-profiles.index', 'active' => 'salary-profiles.*', 'permission' => 'payroll.view'],
+                    ['label' => 'เอกสาร ITA', 'route' => 'ita.documents.index', 'active' => 'ita.documents.*', 'permission' => 'ita.view'],
+                ],
+            ],
+        ];
+    @endphp
 
-        {{-- Sidebar --}}
-        <aside class="w-64 bg-gray-950 text-white">
-            <div class="px-6 py-5 border-b border-gray-800">
-                @php
-                    $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
-                    $name = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
-                @endphp
+    <div class="min-h-screen lg:flex">
+        <input id="app-sidebar-toggle" type="checkbox" class="peer sr-only">
+        <label for="app-sidebar-toggle" class="fixed inset-0 z-30 hidden bg-slate-950/50 peer-checked:block lg:hidden" aria-label="ปิดเมนู"></label>
 
-                <div class="flex items-center gap-3">
-                    @if ($logoUrl)
-                        <img src="{{ $logoUrl }}"
-                            alt="logo"
-                            class="h-10 w-10 rounded bg-white object-contain p-1">
-                    @endif
+        <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:w-64 lg:translate-x-0 lg:shadow-none">
+            <div class="border-b border-white/10 px-5 py-5">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        @if ($logoUrl)
+                            <img src="{{ $logoUrl }}" alt="logo" class="h-10 w-10 rounded-lg bg-white object-contain p-1">
+                        @else
+                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#02abff] text-sm font-bold text-white">
+                                H
+                            </div>
+                        @endif
 
-                    <div>
-                        <div class="font-bold">
-                            {{ $name }}
-                        </div>
-                        <div class="text-xs text-gray-400">
-                            Back-office System
+                        <div class="min-w-0">
+                            <div class="truncate font-bold">{{ $name }}</div>
+                            <div class="text-xs text-slate-400">Back-office System</div>
                         </div>
                     </div>
-                </div>
-                <div class="text-xs text-gray-400">
-                    Core System
+
+                    <label for="app-sidebar-toggle" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden" aria-label="ปิดเมนู">
+                        <span class="block h-4 w-4 text-center leading-4">×</span>
+                    </label>
                 </div>
             </div>
 
-            <nav class="px-4 py-4 space-y-1">
+            <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+                @foreach ($navSections as $section)
+                    @php
+                        $visibleItems = collect($section['items'])
+                            ->filter(fn ($item) => Route::has($item['route']) && auth()->user()?->can($item['permission']));
+                    @endphp
 
-                {{-- Dashboard --}}
-                @can('dashboard.view')
-                    <a href="{{ route('dashboard') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('dashboard') ? 'bg-gray-800' : '' }}">
-                        Dashboard
-                    </a>
-                @endcan
+                    @if ($visibleItems->isNotEmpty())
+                        <div>
+                            <div class="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-sky-300">
+                                {{ $section['label'] }}
+                            </div>
 
-                <div class="pt-4 pb-1 text-xs font-semibold uppercase text-blue-300">
-                    Core System
-                </div>
-
-                @can('approval.view')
-                    <a href="{{ route('approvals.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('approvals.*') ? 'bg-gray-800' : '' }}">
-                        รายการอนุมัติ
-                    </a>
-                @endcan
-
-                @can('department.view')
-                    <a href="{{ route('departments.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('departments.*') ? 'bg-gray-800' : '' }}">
-                        หน่วยงาน
-                    </a>
-                @endcan
-
-                @can('position.view')
-                    <a href="{{ route('positions.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('positions.*') ? 'bg-gray-800' : '' }}">
-                        ตำแหน่ง
-                    </a>
-                @endcan
-
-                @can('employee.view')
-                    <a href="{{ route('employees.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('employees.*') ? 'bg-gray-800' : '' }}">
-                        บุคลากร
-                    </a>
-                @endcan
-
-                @can('user.view')
-                    <a href="{{ route('users.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('users.*') ? 'bg-gray-800' : '' }}">
-                        ผู้ใช้งานระบบ
-                    </a>
-                @endcan
-
-                @if (Route::has('system-settings.index'))
-                    @can('setting.view')
-                        <a href="{{ route('system-settings.index') }}"
-                           class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('system-settings.*') ? 'bg-gray-800' : '' }}">
-                            ตั้งค่าระบบ
-                        </a>
-                    @endcan
-                @endif
-                @can('audit.view')
-                    <a href="{{ route('audit-logs.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('audit-logs.*') ? 'bg-gray-800' : '' }}">
-                        Audit Log
-                    </a>
-                @endcan
-
-                <div class="pt-4 pb-1 text-xs font-semibold uppercase text-blue-300">
-                    Modules
-                </div>
-
-                @can('meeting.view')
-                <a href="{{ route('meeting-bookings.index') }}"
-                class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('meeting-bookings.*') ? 'bg-gray-800' : '' }}">
-                    จองห้องประชุม
-                </a>
-
-                <a href="{{ route('meeting-rooms.index') }}"
-                class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('meeting-rooms.*') ? 'bg-gray-800' : '' }}">
-                    ห้องประชุม
-                </a>
-            @endcan
-
-                @can('asset.view')
-                    <a href="{{ route('assets.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('assets.*') ? 'bg-gray-800' : '' }}">
-                        ทะเบียนพัสดุ
-                    </a>
-
-                    <a href="{{ route('asset-categories.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('asset-categories.*') ? 'bg-gray-800' : '' }}">
-                        หมวดหมู่พัสดุ
-                    </a>
-
-                    <a href="{{ route('asset-movements.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('asset-movements.*') ? 'bg-gray-800' : '' }}">
-                        โอนย้ายพัสดุ
-                    </a>
-                @endcan
-
-                @can('computer.view')
-                    <a href="{{ route('computers.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('computers.*') ? 'bg-gray-800' : '' }}">
-                        ทะเบียนคอมพิวเตอร์
-                    </a>
-                @endcan
-
-                @can('computer.agent_manage')
-                    <a href="{{ route('computer-agents.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('computer-agents.*') ? 'bg-gray-800' : '' }}">
-                        Computer Agents
-                    </a>
-                @endcan
-
-                @can('software.view')
-                    <a href="{{ route('software-inventory.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-inventory.*') ? 'bg-gray-800' : '' }}">
-                        Software Inventory
-                    </a>
-
-                    <a href="{{ route('software-products.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-products.*') ? 'bg-gray-800' : '' }}">
-                        Software Products
-                    </a>
-
-                    <a href="{{ route('software-licenses.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-licenses.*') ? 'bg-gray-800' : '' }}">
-                        Software Licenses
-                    </a>
-                @endcan
-
-                @can('repair.view')
-                    <a href="{{ route('repair-requests.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('repair-requests.*') ? 'bg-gray-800' : '' }}">
-                        ระบบแจ้งซ่อม
-                    </a>
-
-                    <a href="{{ route('repair-requests.kanban') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('repair-requests.kanban') ? 'bg-gray-800' : '' }}">
-                        Repair Kanban
-                    </a>
-                @endcan
-
-                @can('leave.view')
-                    <a href="{{ route('leave-requests.dashboard') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.dashboard') ? 'bg-gray-800' : '' }}">
-                        Leave Dashboard
-                    </a>
-
-                    <a href="{{ route('leave-requests.calendar') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.calendar') ? 'bg-gray-800' : '' }}">
-                        ปฏิทินการลา
-                    </a>
-                    <a href="{{ route('leave-requests.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.*') ? 'bg-gray-800' : '' }}">
-                        ระบบการลา
-                    </a>
-
-                    <a href="{{ route('leave-types.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-types.*') ? 'bg-gray-800' : '' }}">
-                        ประเภทการลา
-                    </a>
-                @endcan
-
-                @can('attendance.view')
-                    <a href="{{ route('attendance-logs.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-logs.*') ? 'bg-gray-800' : '' }}">
-                        เวลาทำงาน
-                    </a>
-
-                    <a href="{{ route('attendance-devices.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-devices.*') ? 'bg-gray-800' : '' }}">
-                        เครื่องสแกนนิ้ว
-                    </a>
-
-                    <a href="{{ route('attendance-summaries.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-summaries.*') ? 'bg-gray-800' : '' }}">
-                        สรุปเวลาทำงาน
-                    </a>
-
-                    <a href="{{ route('attendance-summaries.dashboard') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-summaries.dashboard') ? 'bg-gray-800' : '' }}">
-                        Attendance Dashboard
-                    </a>
-                @endcan
-
-                @can('duty.view')
-                    <a href="{{ route('duty-schedules.calendar') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('duty-schedules.calendar') ? 'bg-gray-800' : '' }}">
-                        ปฏิทินตารางเวร
-                    </a>
-
-                    <a href="{{ route('duty-schedules.bulk-create') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('duty-schedules.bulk-create') ? 'bg-gray-800' : '' }}">
-                        สร้างเวรหลายรายการ
-                    </a>
-                @endcan
-
-                @can('payroll.view')
-                    <a href="{{ route('payroll-periods.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('payroll-periods.*') ? 'bg-gray-800' : '' }}">
-                        เงินเดือน / สลิป
-                    </a>
-
-                    <a href="{{ route('salary-profiles.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('salary-profiles.*') ? 'bg-gray-800' : '' }}">
-                        ตั้งค่าเงินเดือน
-                    </a>
-                @endcan
+                            <div class="space-y-1">
+                                @foreach ($visibleItems as $item)
+                                    <a href="{{ route($item['route']) }}"
+                                       class="block rounded-xl px-3 py-2 text-sm font-medium transition {{ request()->routeIs($item['active']) ? 'bg-[#02abff] text-white shadow-sm shadow-sky-950/30' : 'text-slate-200 hover:bg-white/10 hover:text-white' }}">
+                                        {{ $item['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
             </nav>
         </aside>
 
-        {{-- Main Content --}}
-        <div class="flex-1 flex flex-col">
+        <div class="flex min-w-0 flex-1 flex-col">
+            <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+                <div class="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <label for="app-sidebar-toggle" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden" aria-label="เปิดเมนู">
+                            เมนู
+                        </label>
 
-            {{-- Topbar --}}
-            <header class="bg-white border-b border-gray-200">
-                <div class="px-6 py-4 flex items-center justify-between">
-                    <div class="font-semibold">
-                        {{ $title ?? 'Dashboard' }}
+                        <div class="min-w-0">
+                            <div class="truncate text-sm font-semibold text-slate-900 sm:text-base">
+                                {{ $title ?? 'Dashboard' }}
+                            </div>
+                            <div class="hidden text-xs text-slate-500 sm:block">
+                                {{ now()->format('d/m/Y H:i') }}
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-4">
-                        @auth
-                            <div class="text-right">
-                                <div class="text-sm font-medium">
-                                    {{ auth()->user()->name }}
-                                </div>
-
-                                <div class="text-xs text-gray-500">
+                    @auth
+                        <div class="flex min-w-0 items-center gap-3">
+                            <div class="hidden text-right sm:block">
+                                <div class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</div>
+                                <div class="max-w-44 truncate text-xs text-slate-500">
                                     {{ auth()->user()->roles->pluck('name')->join(', ') ?: 'no role' }}
                                 </div>
                             </div>
@@ -283,19 +162,17 @@
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
 
-                                    <button type="submit"
-                                            class="rounded bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800">
+                                    <button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">
                                         ออกจากระบบ
                                     </button>
                                 </form>
                             @endif
-                        @endauth
-                    </div>
+                        </div>
+                    @endauth
                 </div>
             </header>
 
-            {{-- Page --}}
-            <main class="flex-1 p-6">
+            <main class="min-w-0 flex-1 p-4 sm:p-6">
                 {{ $slot }}
             </main>
         </div>

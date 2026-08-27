@@ -5,29 +5,48 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\DutySchedule;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
 use App\Models\ShiftType;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class DutyScheduleController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         abort_unless(auth()->user()->can('duty.view'), 403);
 
         $search = $request->string('search')->toString();
-        $dateFrom = $request->string('date_from')->toString();
-        $dateTo = $request->string('date_to')->toString();
         $departmentId = $request->string('department_id')->toString();
         $roleGroup = $request->string('role_group')->toString();
+        $month = (int) $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year);
 
         $perPage = (int) $request->input('per_page', 25);
+
+        if ($month < 1 || $month > 12) {
+            $month = now()->month;
+        }
+
+        if ($year < 2400) {
+            $year += 543;
+        }
+
+        if ($year < 2500 || $year > 2700) {
+            $year = now()->year + 543;
+        }
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
             $perPage = 25;
         }
+
+        $selectedMonth = Carbon::create($year - 543, $month, 1)->startOfMonth();
+        $dateFrom = $selectedMonth->copy()->startOfMonth()->toDateString();
+        $dateTo = $selectedMonth->copy()->endOfMonth()->toDateString();
 
         $schedules = DutySchedule::query()
             ->with(['employee', 'department', 'shiftType', 'assignedBy'])
@@ -38,12 +57,8 @@ class DutyScheduleController extends Controller
                         ->orWhere('last_name', 'like', "%{$search}%");
                 });
             })
-            ->when($dateFrom, function ($query) use ($dateFrom) {
-                $query->whereDate('work_date', '>=', $dateFrom);
-            })
-            ->when($dateTo, function ($query) use ($dateTo) {
-                $query->whereDate('work_date', '<=', $dateTo);
-            })
+            ->whereDate('work_date', '>=', $dateFrom)
+            ->whereDate('work_date', '<=', $dateTo)
             ->when($departmentId, function ($query) use ($departmentId) {
                 $query->where('department_id', $departmentId);
             })
@@ -55,6 +70,13 @@ class DutyScheduleController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $departments = Department::where('is_active', true)->orderBy('code')->get();
+        $dashboard = $this->buildDashboardSummary(
+            $selectedMonth,
+            $departmentId,
+            $roleGroup
+        );
+
         return view('duty-schedules.index', [
             'schedules' => $schedules,
             'search' => $search,
@@ -63,8 +85,125 @@ class DutyScheduleController extends Controller
             'departmentId' => $departmentId,
             'roleGroup' => $roleGroup,
             'perPage' => $perPage,
-            'departments' => Department::where('is_active', true)->orderBy('code')->get(),
+            'month' => $month,
+            'year' => $year,
+            'selectedMonth' => $selectedMonth,
+            'departments' => $departments,
+            'dashboard' => $dashboard,
         ]);
+    }
+
+    /**
+     * @return array{
+     *     days_in_month:int,
+     *     employee_count:int,
+     *     assigned_count:int,
+     *     confirmed_count:int,
+     *     cancelled_count:int,
+     *     leave_days:float,
+     *     ot_count:int,
+     *     shift_distribution:Collection<int, object>,
+     *     workload_top:Collection<int, object>,
+     *     max_shift_count:int,
+     *     max_workload_count:int,
+     * }
+     */
+    private function buildDashboardSummary(Carbon $selectedMonth, string $departmentId, string $roleGroup): array
+    {
+        $dateFrom = $selectedMonth->copy()->startOfMonth()->toDateString();
+        $dateTo = $selectedMonth->copy()->endOfMonth()->toDateString();
+
+        $scopeSchedules = function ($query) use ($dateFrom, $dateTo, $departmentId, $roleGroup) {
+            return $query
+                ->whereDate('duty_schedules.work_date', '>=', $dateFrom)
+                ->whereDate('duty_schedules.work_date', '<=', $dateTo)
+                ->when($departmentId, function ($scheduleQuery) use ($departmentId) {
+                    $scheduleQuery->where('duty_schedules.department_id', $departmentId);
+                })
+                ->when($roleGroup, function ($scheduleQuery) use ($roleGroup) {
+                    $scheduleQuery->where('duty_schedules.role_group', 'like', "%{$roleGroup}%");
+                });
+        };
+
+        $assignedCount = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->count();
+
+        $confirmedCount = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->where('status', 'confirmed')
+            ->count();
+
+        $cancelledCount = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->where('status', 'cancelled')
+            ->count();
+
+        $employeeCount = Employee::query()
+            ->where('status', 'active')
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
+            ->count();
+
+        $leaveDays = (float) LeaveRequest::query()
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $dateTo)
+            ->whereDate('end_date', '>=', $dateFrom)
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
+            ->sum('total_days');
+
+        $otCount = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->whereHas('shiftType', function ($query) {
+                $query->where('code', 'like', '%OT%')
+                    ->orWhere('name', 'like', '%OT%')
+                    ->orWhere('name', 'like', '%ล่วงเวลา%');
+            })
+            ->count();
+
+        $shiftDistribution = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->join('shift_types', 'shift_types.id', '=', 'duty_schedules.shift_type_id')
+            ->select([
+                'shift_types.code',
+                'shift_types.name',
+                DB::raw('count(*) as total'),
+            ])
+            ->groupBy('shift_types.id', 'shift_types.code', 'shift_types.name')
+            ->orderByDesc('total')
+            ->get();
+
+        $workloadTop = DutySchedule::query()
+            ->tap($scopeSchedules)
+            ->join('employees', 'employees.id', '=', 'duty_schedules.employee_id')
+            ->select([
+                'employees.employee_code',
+                'employees.prefix',
+                'employees.first_name',
+                'employees.last_name',
+                DB::raw('count(*) as total'),
+            ])
+            ->groupBy('employees.id', 'employees.employee_code', 'employees.prefix', 'employees.first_name', 'employees.last_name')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get();
+
+        return [
+            'days_in_month' => $selectedMonth->daysInMonth,
+            'employee_count' => $employeeCount,
+            'assigned_count' => $assignedCount,
+            'confirmed_count' => $confirmedCount,
+            'cancelled_count' => $cancelledCount,
+            'leave_days' => $leaveDays,
+            'ot_count' => $otCount,
+            'shift_distribution' => $shiftDistribution,
+            'workload_top' => $workloadTop,
+            'max_shift_count' => max((int) $shiftDistribution->max('total'), 1),
+            'max_workload_count' => max((int) $workloadTop->max('total'), 1),
+        ];
     }
 
     public function create()
@@ -218,8 +357,8 @@ class DutyScheduleController extends Controller
 
     private function buildDateTimes(string $workDate, ShiftType $shiftType): array
     {
-        $startAt = Carbon::parse($workDate . ' ' . $shiftType->start_time);
-        $endAt = Carbon::parse($workDate . ' ' . $shiftType->end_time);
+        $startAt = Carbon::parse($workDate.' '.$shiftType->start_time);
+        $endAt = Carbon::parse($workDate.' '.$shiftType->end_time);
 
         if ($shiftType->crosses_midnight || $endAt->lessThanOrEqualTo($startAt)) {
             $endAt->addDay();
@@ -375,10 +514,11 @@ class DutyScheduleController extends Controller
 
                     $overwrite = (bool) ($validated['overwrite'] ?? false);
 
-                        if ($existing && ! $overwrite) {
-                            $skipped++;
-                            continue;
-                        }
+                    if ($existing && ! $overwrite) {
+                        $skipped++;
+
+                        continue;
+                    }
 
                     $data = [
                         'employee_id' => $employee->id,
@@ -407,6 +547,7 @@ class DutyScheduleController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 

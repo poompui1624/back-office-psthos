@@ -49,6 +49,7 @@
                     <th class="border px-4 py-2 text-left">หมวดหมู่</th>
                     <th class="border px-4 py-2 text-left">หน่วยงาน</th>
                     <th class="border px-4 py-2 text-left">ผู้รับผิดชอบ</th>
+                    <th class="border px-4 py-2 text-center">อายุพัสดุ</th>
                     <th class="border px-4 py-2 text-center">สถานะ</th>
                     <th class="border px-4 py-2 text-center">จัดการ</th>
                 </tr>
@@ -71,6 +72,14 @@
                         <td class="border px-4 py-2">{{ $asset->category?->name ?? '-' }}</td>
                         <td class="border px-4 py-2">{{ $asset->department?->name ?? '-' }}</td>
                         <td class="border px-4 py-2">{{ $asset->responsibleEmployee?->full_name ?? '-' }}</td>
+                        <td class="border px-4 py-2 text-center">
+                            <div class="font-medium text-gray-800">{{ $asset->age_text }}</div>
+                            @if ($asset->received_date)
+                                <div class="text-xs text-gray-500">
+                                    รับเข้า {{ $asset->received_date->format('d/m/Y') }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="border px-4 py-2 text-center">
                             <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
                                 {{ $asset->status }}
@@ -107,7 +116,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
+                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
                             ไม่พบข้อมูลพัสดุ
                         </td>
                     </tr>

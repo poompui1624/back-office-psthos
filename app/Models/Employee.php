@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
@@ -37,7 +37,7 @@ class Employee extends Model
 
     public function getFullNameAttribute(): string
     {
-        return trim(($this->prefix ? $this->prefix . ' ' : '') . $this->first_name . ' ' . $this->last_name);
+        return trim(($this->prefix ? $this->prefix.' ' : '').$this->first_name.' '.$this->last_name);
     }
 
     public function department(): BelongsTo
@@ -53,6 +53,11 @@ class Employee extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class);
+    }
+
+    public function personnelProfile(): HasOne
+    {
+        return $this->hasOne(EmployeePersonnelProfile::class);
     }
 
     public function attachments(): MorphMany

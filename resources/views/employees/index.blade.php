@@ -102,6 +102,13 @@
                                     </a>
                                 @endcan
 
+                                @if (auth()->user()?->can('employee.sensitive.view') || auth()->user()?->can('employee.update'))
+                                    <a href="{{ route('employees.personnel-profile.edit', $employee) }}"
+                                       class="rounded bg-sky-600 px-3 py-1 text-sm text-white hover:bg-sky-700">
+                                        ก.พ.7
+                                    </a>
+                                @endif
+
                                 @can('employee.delete')
                                     <form method="POST"
                                           action="{{ route('employees.destroy', $employee) }}"

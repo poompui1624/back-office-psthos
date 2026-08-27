@@ -8,10 +8,10 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Services\AppNotificationService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LeaveRequestController extends Controller
 {
@@ -329,11 +329,11 @@ class LeaveRequestController extends Controller
 
     private function generateRequestNo(): string
     {
-        $prefix = 'LV' . now()->format('Ymd');
+        $prefix = 'LV'.now()->format('Ymd');
 
-        $count = LeaveRequest::where('request_no', 'like', $prefix . '%')->count() + 1;
+        $count = LeaveRequest::where('request_no', 'like', $prefix.'%')->count() + 1;
 
-        return $prefix . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
     }
 
     private function notifyLeaveCreated(LeaveRequest $leaveRequest): void
@@ -393,37 +393,109 @@ class LeaveRequestController extends Controller
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
 
+        $month = (int) $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year + 543);
+        $departmentId = $request->string('department_id')->toString();
+
+        if ($month < 1 || $month > 12) {
+            $month = now()->month;
+        }
+
+        if ($year < 2400) {
+            $year += 543;
+        }
+
+        if ($year < 2500 || $year > 2700) {
+            $year = now()->year + 543;
+        }
+
+        $selectedMonth = Carbon::create($year - 543, $month, 1)->startOfMonth();
         $today = now()->toDateString();
-        $startOfMonth = now()->startOfMonth()->toDateString();
-        $endOfMonth = now()->endOfMonth()->toDateString();
+        $startOfMonth = $selectedMonth->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $selectedMonth->copy()->endOfMonth()->toDateString();
+
+        $periodScope = function ($query) use ($startOfMonth, $endOfMonth, $departmentId) {
+            return $query
+                ->whereDate('start_date', '<=', $endOfMonth)
+                ->whereDate('end_date', '>=', $startOfMonth)
+                ->when($departmentId, function ($leaveQuery) use ($departmentId) {
+                    $leaveQuery->where('department_id', $departmentId);
+                });
+        };
 
         $summary = [
-            'pending' => LeaveRequest::where('status', 'pending')->count(),
-            'approved' => LeaveRequest::where('status', 'approved')->count(),
-            'rejected' => LeaveRequest::where('status', 'rejected')->count(),
-            'cancelled' => LeaveRequest::where('status', 'cancelled')->count(),
+            'pending' => LeaveRequest::query()->tap($periodScope)->where('status', 'pending')->count(),
+            'approved' => LeaveRequest::query()->tap($periodScope)->where('status', 'approved')->count(),
+            'rejected' => LeaveRequest::query()->tap($periodScope)->where('status', 'rejected')->count(),
+            'cancelled' => LeaveRequest::query()->tap($periodScope)->where('status', 'cancelled')->count(),
 
-            'this_month' => LeaveRequest::whereDate('start_date', '<=', $endOfMonth)
-                ->whereDate('end_date', '>=', $startOfMonth)
-                ->count(),
+            'this_month' => LeaveRequest::query()->tap($periodScope)->count(),
+            'approved_days' => (float) LeaveRequest::query()->tap($periodScope)->where('status', 'approved')->sum('total_days'),
 
-            'today_on_leave' => LeaveRequest::where('status', 'approved')
+            'today_on_leave' => LeaveRequest::query()
+                ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
+                ->when($departmentId, function ($query) use ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                })
                 ->count(),
         ];
+
+        $leaveTypeTotals = LeaveRequest::query()
+            ->tap($periodScope)
+            ->select('leave_type_id', DB::raw('count(*) as total_requests'), DB::raw('sum(total_days) as total_days'))
+            ->groupBy('leave_type_id')
+            ->get()
+            ->keyBy('leave_type_id');
+
+        $leaveTypeStats = LeaveType::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get()
+            ->map(function (LeaveType $leaveType) use ($leaveTypeTotals) {
+                $total = $leaveTypeTotals->get($leaveType->id);
+
+                return [
+                    'id' => $leaveType->id,
+                    'code' => $leaveType->code,
+                    'name' => $leaveType->name,
+                    'requires_document' => $leaveType->requires_document,
+                    'total_requests' => (int) ($total?->total_requests ?? 0),
+                    'total_days' => (float) ($total?->total_days ?? 0),
+                ];
+            });
+
+        $departmentStats = LeaveRequest::query()
+            ->tap($periodScope)
+            ->leftJoin('departments', 'departments.id', '=', 'leave_requests.department_id')
+            ->select([
+                DB::raw("coalesce(departments.name, 'ไม่ระบุหน่วยงาน') as department_name"),
+                DB::raw('count(*) as total_requests'),
+                DB::raw('sum(leave_requests.total_days) as total_days'),
+            ])
+            ->groupBy('departments.id', 'departments.name')
+            ->orderByDesc('total_days')
+            ->limit(8)
+            ->get();
 
         $todayLeaves = LeaveRequest::query()
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->orderBy('start_date')
             ->get();
 
         $pendingRequests = LeaveRequest::query()
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'pending')
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->latest()
             ->limit(10)
             ->get();
@@ -432,15 +504,38 @@ class LeaveRequestController extends Controller
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '>=', $today)
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->orderBy('start_date')
             ->limit(10)
             ->get();
 
+        $recentRequests = LeaveRequest::query()
+            ->with(['employee', 'department', 'leaveType', 'approver'])
+            ->tap($periodScope)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $departments = Department::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
         return view('leave-requests.dashboard', compact(
+            'month',
+            'year',
+            'selectedMonth',
+            'departmentId',
+            'departments',
             'summary',
+            'leaveTypeStats',
+            'departmentStats',
             'todayLeaves',
             'pendingRequests',
-            'upcomingLeaves'
+            'upcomingLeaves',
+            'recentRequests'
         ));
     }
 
