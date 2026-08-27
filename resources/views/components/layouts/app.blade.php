@@ -1,3 +1,5 @@
+@props(['title' => null, 'subtitle' => null])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -7,188 +9,166 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-slate-100 text-slate-900">
-    @php
-        $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
-        $name = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
+<body class="bg-slate-100 text-slate-900 antialiased">
+@php
+    $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
+    $hospital = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
 
-        $navSections = [
-            [
-                'label' => 'ของฉัน',
-                'items' => [
-                    ['label' => 'ภาพรวมของฉัน', 'route' => 'me.index', 'active' => 'me.index', 'permission' => null],
-                    ['label' => 'ใบลาของฉัน', 'route' => 'me.leaves', 'active' => 'me.leaves', 'permission' => 'leave.view.own'],
-                    ['label' => 'เวรของฉัน', 'route' => 'me.duties', 'active' => 'me.duties', 'permission' => 'duty.view.own'],
-                    ['label' => 'ลงเวลาของฉัน', 'route' => 'me.attendance', 'active' => 'me.attendance', 'permission' => 'attendance.view.own'],
-                    ['label' => 'สลิปของฉัน', 'route' => 'me.payslips', 'active' => 'me.payslips', 'permission' => 'payslip.view.own'],
-                    ['label' => 'แจ้งซ่อมของฉัน', 'route' => 'me.repairs', 'active' => 'me.repairs', 'permission' => 'repair.view.own'],
-                    ['label' => 'จองห้องของฉัน', 'route' => 'me.meetings', 'active' => 'me.meetings', 'permission' => 'meeting.view.own'],
-                ],
-            ],
-            [
-                'label' => 'ภาพรวม',
-                'items' => [
-                    ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'permission' => 'dashboard.view'],
-                    ['label' => 'รายการอนุมัติ', 'route' => 'approvals.index', 'active' => 'approvals.*', 'permission' => 'approval.view'],
-                ],
-            ],
-            [
-                'label' => 'ข้อมูลหลัก',
-                'items' => [
-                    ['label' => 'หน่วยงาน', 'route' => 'departments.index', 'active' => 'departments.*', 'permission' => 'department.view'],
-                    ['label' => 'ตำแหน่ง', 'route' => 'positions.index', 'active' => 'positions.*', 'permission' => 'position.view'],
-                    ['label' => 'บุคลากร', 'route' => 'employees.index', 'active' => 'employees.*', 'permission' => 'employee.view'],
-                    ['label' => 'ผู้ใช้งานระบบ', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'user.view'],
-                    ['label' => 'ตั้งค่าระบบ', 'route' => 'system-settings.index', 'active' => 'system-settings.*', 'permission' => 'setting.view'],
-                    ['label' => 'Audit Log', 'route' => 'audit-logs.index', 'active' => 'audit-logs.*', 'permission' => 'audit.view'],
-                ],
-            ],
-            [
-                'label' => 'งานบุคคล',
-                'items' => [
-                    ['label' => 'Dashboard การลา', 'route' => 'leave-requests.dashboard', 'active' => 'leave-requests.dashboard', 'permission' => 'leave.view'],
-                    ['label' => 'รายการลา', 'route' => 'leave-requests.index', 'active' => 'leave-requests.index', 'permission' => 'leave.view'],
-                    ['label' => 'ปฏิทินลา', 'route' => 'leave-requests.calendar', 'active' => 'leave-requests.calendar', 'permission' => 'leave.view'],
-                    ['label' => 'ประเภทการลา', 'route' => 'leave-types.index', 'active' => 'leave-types.*', 'permission' => 'leave.view'],
-                    ['label' => 'Dashboard เวลา', 'route' => 'attendance-summaries.dashboard', 'active' => 'attendance-summaries.dashboard', 'permission' => 'attendance.view'],
-                    ['label' => 'เวลาเข้างาน', 'route' => 'attendance-logs.index', 'active' => 'attendance-logs.*', 'permission' => 'attendance.view'],
-                    ['label' => 'สรุปเวลาทำงาน', 'route' => 'attendance-summaries.index', 'active' => 'attendance-summaries.index', 'permission' => 'attendance.view'],
-                    ['label' => 'เครื่องสแกนนิ้ว', 'route' => 'attendance-devices.index', 'active' => 'attendance-devices.*', 'permission' => 'attendance.view'],
-                    ['label' => 'Dashboard ตารางเวร', 'route' => 'duty-schedules.index', 'active' => 'duty-schedules.index', 'permission' => 'duty.view'],
-                    ['label' => 'ปฏิทินตารางเวร', 'route' => 'duty-schedules.calendar', 'active' => 'duty-schedules.calendar', 'permission' => 'duty.view'],
-                    ['label' => 'สร้างเวรหลายรายการ', 'route' => 'duty-schedules.bulk-create', 'active' => 'duty-schedules.bulk-create', 'permission' => 'duty.create'],
-                    ['label' => 'ประเภทเวร', 'route' => 'shift-types.index', 'active' => 'shift-types.*', 'permission' => 'duty.view'],
-                ],
-            ],
-            [
-                'label' => 'บริการและทรัพย์สิน',
-                'items' => [
-                    ['label' => 'จองห้องประชุม', 'route' => 'meeting-bookings.index', 'active' => 'meeting-bookings.*', 'permission' => 'meeting.view'],
-                    ['label' => 'ห้องประชุม', 'route' => 'meeting-rooms.index', 'active' => 'meeting-rooms.*', 'permission' => 'meeting.view'],
-                    ['label' => 'แจ้งซ่อม', 'route' => 'repair-requests.index', 'active' => 'repair-requests.*', 'permission' => 'repair.view'],
-                    ['label' => 'Repair Kanban', 'route' => 'repair-requests.kanban', 'active' => 'repair-requests.kanban', 'permission' => 'repair.view'],
-                    ['label' => 'ทะเบียนพัสดุ', 'route' => 'assets.index', 'active' => 'assets.*', 'permission' => 'asset.view'],
-                    ['label' => 'หมวดหมู่พัสดุ', 'route' => 'asset-categories.index', 'active' => 'asset-categories.*', 'permission' => 'asset.view'],
-                    ['label' => 'โอนย้ายพัสดุ', 'route' => 'asset-movements.index', 'active' => 'asset-movements.*', 'permission' => 'asset.view'],
-                    ['label' => 'ทะเบียนคอมพิวเตอร์', 'route' => 'computers.index', 'active' => 'computers.*', 'permission' => 'computer.view'],
-                    ['label' => 'Computer Agents', 'route' => 'computer-agents.index', 'active' => 'computer-agents.*', 'permission' => 'computer.agent_manage'],
-                    ['label' => 'Software Inventory', 'route' => 'software-inventory.index', 'active' => 'software-inventory.*', 'permission' => 'software.view'],
-                    ['label' => 'Software Products', 'route' => 'software-products.index', 'active' => 'software-products.*', 'permission' => 'software.view'],
-                    ['label' => 'Software Licenses', 'route' => 'software-licenses.index', 'active' => 'software-licenses.*', 'permission' => 'software.view'],
-                ],
-            ],
-            [
-                'label' => 'การเงินและเอกสาร',
-                'items' => [
-                    ['label' => 'เงินเดือน / สลิป', 'route' => 'payroll-periods.index', 'active' => 'payroll-periods.*', 'permission' => 'payroll.view'],
-                    ['label' => 'ตั้งค่าเงินเดือน', 'route' => 'salary-profiles.index', 'active' => 'salary-profiles.*', 'permission' => 'payroll.view'],
-                    ['label' => 'เอกสาร ITA', 'route' => 'ita.documents.index', 'active' => 'ita.documents.*', 'permission' => 'ita.view'],
-                ],
-            ],
-        ];
-    @endphp
+    $user = auth()->user();
+    $unreadCount = $user?->unreadAppNotifications()->count() ?? 0;
+    $roleLabel = $user?->roles->pluck('name')->join(', ') ?: 'ยังไม่กำหนดสิทธิ์';
 
-    <div class="min-h-screen lg:flex">
-        <input id="app-sidebar-toggle" type="checkbox" class="peer sr-only">
-        <label for="app-sidebar-toggle" class="fixed inset-0 z-30 hidden bg-slate-950/50 peer-checked:block lg:hidden" aria-label="ปิดเมนู"></label>
+    $navSections = collect(config('navigation', []))
+        ->map(function (array $section) use ($user) {
+            $section['items'] = collect($section['items'])
+                ->filter(fn (array $item) => Route::has($item['route'])
+                    && ($item['permission'] === null || $user?->can($item['permission'])))
+                ->values();
 
-        <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:w-64 lg:translate-x-0 lg:shadow-none">
-            <div class="border-b border-white/10 px-5 py-5">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex min-w-0 items-center gap-3">
-                        @if ($logoUrl)
-                            <img src="{{ $logoUrl }}" alt="logo" class="h-10 w-10 rounded-lg bg-white object-contain p-1">
-                        @else
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#02abff] text-sm font-bold text-white">
-                                H
-                            </div>
-                        @endif
+            return $section;
+        })
+        ->filter(fn (array $section) => $section['items']->isNotEmpty());
+@endphp
 
-                        <div class="min-w-0">
-                            <div class="truncate font-bold">{{ $name }}</div>
-                            <div class="text-xs text-slate-400">Back-office System</div>
-                        </div>
-                    </div>
+<div class="min-h-screen lg:flex">
+    <input id="app-sidebar-toggle" type="checkbox" class="peer sr-only">
 
-                    <label for="app-sidebar-toggle" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden" aria-label="ปิดเมนู">
-                        <span class="block h-4 w-4 text-center leading-4">×</span>
-                    </label>
+    <label for="app-sidebar-toggle"
+           class="fixed inset-0 z-30 hidden bg-slate-950/60 backdrop-blur-sm peer-checked:block lg:hidden"
+           aria-label="ปิดเมนู"></label>
+
+    <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:translate-x-0 lg:shadow-none">
+        <div class="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+            @if ($logoUrl)
+                <img src="{{ $logoUrl }}" alt="" class="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-1">
+            @else
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-base font-bold text-white shadow-lg shadow-brand-500/30">
+                    {{ mb_substr($hospital, 0, 1) }}
                 </div>
+            @endif
+
+            <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-bold leading-tight">{{ $hospital }}</div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-400">Back-office System</div>
             </div>
 
-            <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-                @foreach ($navSections as $section)
-                    @php
-                        $visibleItems = collect($section['items'])
-                            ->filter(fn ($item) => Route::has($item['route'])
-                                && ($item['permission'] === null || auth()->user()?->can($item['permission'])));
-                    @endphp
+            <label for="app-sidebar-toggle" class="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="ปิดเมนู">
+                <x-icon name="close" class="h-5 w-5" />
+            </label>
+        </div>
 
-                    @if ($visibleItems->isNotEmpty())
-                        <div>
-                            <div class="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-sky-300">
-                                {{ $section['label'] }}
-                            </div>
+        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+            @foreach ($navSections as $section)
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        {{ $section['label'] }}
+                    </div>
 
-                            <div class="space-y-1">
-                                @foreach ($visibleItems as $item)
-                                    <a href="{{ route($item['route']) }}"
-                                       class="block rounded-xl px-3 py-2 text-sm font-medium transition {{ request()->routeIs($item['active']) ? 'bg-[#02abff] text-white shadow-sm shadow-sky-950/30' : 'text-slate-200 hover:bg-white/10 hover:text-white' }}">
-                                        {{ $item['label'] }}
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
+                    <div class="space-y-0.5">
+                        @foreach ($section['items'] as $item)
+                            @php $isActive = request()->routeIs($item['active']); @endphp
+
+                            <a href="{{ route($item['route']) }}"
+                               @class([
+                                   'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
+                                   'bg-brand-500 text-white shadow-lg shadow-brand-500/25' => $isActive,
+                                   'text-slate-300 hover:bg-white/10 hover:text-white' => ! $isActive,
+                               ])>
+                                <x-icon :name="$item['icon']" class="h-[18px] w-[18px] shrink-0 {{ $isActive ? 'text-white' : 'text-slate-400 group-hover:text-brand-300' }}" />
+                                <span class="truncate">{{ $item['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </nav>
+
+        @auth
+            <div class="border-t border-white/10 p-3">
+                <div class="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
+                        {{ $user->initials() }}
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate text-sm font-semibold leading-tight">{{ $user->name }}</div>
+                        <div class="truncate text-[11px] text-slate-400">{{ $roleLabel }}</div>
+                    </div>
+
+                    @if (Route::has('logout'))
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-rose-300"
+                                    title="ออกจากระบบ">
+                                <x-icon name="logout" class="h-[18px] w-[18px]" />
+                            </button>
+                        </form>
                     @endif
-                @endforeach
-            </nav>
-        </aside>
+                </div>
+            </div>
+        @endauth
+    </aside>
 
-        <div class="flex min-w-0 flex-1 flex-col">
-            <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-                <div class="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-                    <div class="flex min-w-0 items-center gap-3">
-                        <label for="app-sidebar-toggle" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden" aria-label="เปิดเมนู">
-                            เมนู
-                        </label>
+    <div class="flex min-w-0 flex-1 flex-col">
+        <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
+            <div class="flex items-center gap-3 px-4 py-3 sm:px-6">
+                <label for="app-sidebar-toggle"
+                       class="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 lg:hidden"
+                       aria-label="เปิดเมนู">
+                    <x-icon name="menu" />
+                </label>
 
-                        <div class="min-w-0">
-                            <div class="truncate text-sm font-semibold text-slate-900 sm:text-base">
-                                {{ $title ?? 'Dashboard' }}
+                <div class="min-w-0 flex-1">
+                    <h1 class="truncate text-base font-bold leading-tight text-slate-900 sm:text-lg">
+                        {{ $title ?? 'Dashboard' }}
+                    </h1>
+
+                    <div class="hidden items-center gap-1.5 text-xs text-slate-500 sm:flex">
+                        @if ($subtitle)
+                            <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+                            <span class="truncate">{{ $subtitle }}</span>
+                        @else
+                            <span>{{ now()->format('d/m/Y H:i') }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                @auth
+                    <div class="flex items-center gap-2">
+                        @if (Route::has('notifications.index'))
+                            <a href="{{ route('notifications.index') }}"
+                               class="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-brand-600"
+                               title="การแจ้งเตือน">
+                                <x-icon name="bell" />
+
+                                @if ($unreadCount > 0)
+                                    <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                                        {{ $unreadCount > 99 ? '99+' : $unreadCount }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
+
+                        <div class="hidden items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-2 pr-3 shadow-sm sm:flex">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-[11px] font-bold text-white">
+                                {{ $user->initials() }}
                             </div>
-                            <div class="hidden text-xs text-slate-500 sm:block">
-                                {{ now()->format('d/m/Y H:i') }}
+
+                            <div class="min-w-0 leading-tight">
+                                <div class="truncate text-sm font-semibold text-slate-900">{{ $user->name }}</div>
+                                <div class="max-w-40 truncate text-[11px] text-slate-500">{{ $roleLabel }}</div>
                             </div>
                         </div>
                     </div>
+                @endauth
+            </div>
+        </header>
 
-                    @auth
-                        <div class="flex min-w-0 items-center gap-3">
-                            <div class="hidden text-right sm:block">
-                                <div class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</div>
-                                <div class="max-w-44 truncate text-xs text-slate-500">
-                                    {{ auth()->user()->roles->pluck('name')->join(', ') ?: 'no role' }}
-                                </div>
-                            </div>
-
-                            @if (Route::has('logout'))
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-
-                                    <button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">
-                                        ออกจากระบบ
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
-                    @endauth
-                </div>
-            </header>
-
-            <main class="min-w-0 flex-1 p-4 sm:p-6">
-                {{ $slot }}
-            </main>
-        </div>
+        <main class="min-w-0 flex-1 p-4 sm:p-6">
+            {{ $slot }}
+        </main>
     </div>
+</div>
 </body>
 </html>
