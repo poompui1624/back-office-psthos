@@ -28,6 +28,7 @@ class SalaryProfileFactory extends Factory
             'late_deduction_per_minute' => 0,
             'early_leave_deduction_per_minute' => 0,
             'absent_deduction_per_day' => 0,
+            'ot_rate_per_hour' => 0,
             'is_active' => true,
             'remark' => null,
         ];
@@ -53,5 +54,10 @@ class SalaryProfileFactory extends Factory
     public function forEmployee(Employee $employee): static
     {
         return $this->state(fn () => ['employee_id' => $employee->id]);
+    }
+
+    public function withOtRate(float $perHour = 120): static
+    {
+        return $this->state(fn () => ['ot_rate_per_hour' => $perHour]);
     }
 }

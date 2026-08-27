@@ -200,6 +200,22 @@
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>
+    <div>
+        <label class="mb-1 block font-medium">อัตรา OT / ชั่วโมง</label>
+
+        <input type="number"
+               step="0.01"
+               min="0"
+               name="ot_rate_per_hour"
+               value="{{ old('ot_rate_per_hour', $salaryProfile->ot_rate_per_hour ?? 0) }}"
+               class="w-full rounded border-gray-300">
+
+        <p class="mt-1 text-sm text-gray-500">ใช้คูณกับชั่วโมงเวร OT ที่ยืนยันแล้ว</p>
+
+        @error('ot_rate_per_hour')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
 
     <div class="flex items-end">
         <label class="flex items-center gap-2">

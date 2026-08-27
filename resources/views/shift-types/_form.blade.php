@@ -87,6 +87,14 @@
 
         <label class="flex items-center gap-2">
             <input type="checkbox"
+                   name="is_ot"
+                   value="1"
+                   @checked(old('is_ot', $shiftType->is_ot ?? false))>
+
+            <span>นับเป็นเวรล่วงเวลา (OT)</span>
+        </label>
+        <label class="flex items-center gap-2">
+            <input type="checkbox"
                    name="is_active"
                    value="1"
                    @checked(old('is_active', $shiftType->is_active ?? true))>
@@ -103,6 +111,39 @@
                   class="w-full rounded border-gray-300">{{ old('description', $shiftType->description ?? '') }}</textarea>
 
         @error('description')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+    <div>
+        <label class="mb-1 block font-medium">ตัวคูณ OT</label>
+
+        <input type="number"
+               step="0.01"
+               min="0"
+               name="ot_multiplier"
+               value="{{ old('ot_multiplier', $shiftType->ot_multiplier ?? 1) }}"
+               class="w-full rounded border-gray-300">
+
+        <p class="mt-1 text-sm text-gray-500">คูณกับอัตรารายชั่วโมงของบุคลากร เช่น 1.5 คือหนึ่งเท่าครึ่ง</p>
+
+        @error('ot_multiplier')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label class="mb-1 block font-medium">ค่า OT เหมาจ่าย (บาท)</label>
+
+        <input type="number"
+               step="0.01"
+               min="0"
+               name="ot_flat_rate"
+               value="{{ old('ot_flat_rate', $shiftType->ot_flat_rate ?? '') }}"
+               class="w-full rounded border-gray-300">
+
+        <p class="mt-1 text-sm text-gray-500">ถ้ากรอกไว้ จะจ่ายเท่านี้ต่อเวร และไม่ใช้ตัวคูณ</p>
+
+        @error('ot_flat_rate')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

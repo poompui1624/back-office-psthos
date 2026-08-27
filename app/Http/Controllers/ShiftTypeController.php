@@ -95,13 +95,24 @@ class ShiftTypeController extends Controller
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i'],
             'crosses_midnight' => ['nullable', 'boolean'],
+            'is_ot' => ['nullable', 'boolean'],
+            'ot_multiplier' => ['nullable', 'numeric', 'min:0', 'max:10'],
+            'ot_flat_rate' => ['nullable', 'numeric', 'min:0'],
             'color' => ['nullable', 'string', 'max:50'],
             'is_active' => ['nullable', 'boolean'],
             'description' => ['nullable', 'string'],
         ]);
 
         $validated['crosses_midnight'] = $request->boolean('crosses_midnight');
+        $validated['is_ot'] = $request->boolean('is_ot');
         $validated['is_active'] = $request->boolean('is_active');
+
+        // A blank multiplier means "no scaling", not "unpaid".
+        $validated['ot_multiplier'] = $validated['ot_multiplier'] ?? 1;
+
+        // An empty flat rate must stay null so the multiplier is used instead of
+        // the shift paying zero.
+        $validated['ot_flat_rate'] = ($validated['ot_flat_rate'] ?? '') === '' ? null : $validated['ot_flat_rate'];
 
         return $validated;
     }

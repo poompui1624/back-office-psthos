@@ -24,6 +24,7 @@ class SalaryProfile extends Model
         'late_deduction_per_minute',
         'early_leave_deduction_per_minute',
         'absent_deduction_per_day',
+        'ot_rate_per_hour',
         'is_active',
         'remark',
     ];

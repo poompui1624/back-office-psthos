@@ -7,6 +7,7 @@ use App\Models\DutySchedule;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\ShiftType;
+use App\Services\DutyScheduleRuleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -140,13 +141,10 @@ class DutyScheduleController extends Controller
             })
             ->sum('total_days');
 
+        // Overtime is a property of the shift type now, not a guess at its name.
         $otCount = DutySchedule::query()
             ->tap($scopeSchedules)
-            ->whereHas('shiftType', function ($query) {
-                $query->where('code', 'like', '%OT%')
-                    ->orWhere('name', 'like', '%OT%')
-                    ->orWhere('name', 'like', '%ล่วงเวลา%');
-            })
+            ->whereHas('shiftType', fn ($query) => $query->where('is_ot', true))
             ->count();
 
         $shiftDistribution = DutySchedule::query()
@@ -468,6 +466,7 @@ class DutyScheduleController extends Controller
         $created = 0;
         $updated = 0;
         $skipped = 0;
+        $warnings = [];
 
         DB::transaction(function () use (
             $validated,
@@ -477,7 +476,8 @@ class DutyScheduleController extends Controller
             $weekdays,
             &$created,
             &$updated,
-            &$skipped
+            &$skipped,
+            &$warnings
         ) {
             $employees = Employee::whereIn('id', $validated['employee_ids'])->get();
 
@@ -504,6 +504,17 @@ class DutyScheduleController extends Controller
                         $skipped++;
 
                         continue;
+                    }
+
+                    // Advisory only: a short-staffed ward still has to fill the
+                    // roster, so the assignment is saved and the problems reported.
+                    foreach (DutyScheduleRuleService::warningsFor(
+                        $employee->id,
+                        $shiftType,
+                        $date->format('Y-m-d'),
+                        $existing?->id
+                    ) as $warning) {
+                        $warnings[] = "{$employee->full_name} ({$date->format('d/m/Y')}): {$warning}";
                     }
 
                     $data = [
@@ -553,6 +564,70 @@ class DutyScheduleController extends Controller
 
         return redirect()
             ->route('duty-schedules.index')
-            ->with('success', "สร้างตารางเวรสำเร็จ เพิ่มใหม่ {$created} รายการ, อัปเดต {$updated} รายการ, ข้าม {$skipped} รายการ");
+            ->with('success', "สร้างตารางเวรสำเร็จ เพิ่มใหม่ {$created} รายการ, อัปเดต {$updated} รายการ, ข้าม {$skipped} รายการ")
+            ->with('duty_warnings', $warnings);
+    }
+
+    /**
+     * A printable monthly roster: one row per person, one column per day.
+     */
+    public function print(Request $request)
+    {
+        abort_unless(auth()->user()->can('duty.view'), 403);
+
+        ['month' => $month, 'year' => $year, 'selected_month' => $selectedMonth, 'start_date' => $dateFrom, 'end_date' => $dateTo]
+            = resolve_month_filter($request->input('month'), $request->input('year'));
+
+        $departmentId = $request->string('department_id')->toString();
+        $roleGroup = $request->string('role_group')->toString();
+
+        $schedules = DutySchedule::query()
+            ->visibleTo(auth()->user())
+            ->with(['employee.department', 'shiftType'])
+            ->whereDate('work_date', '>=', $dateFrom)
+            ->whereDate('work_date', '<=', $dateTo)
+            ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
+            ->when($roleGroup, fn ($query) => $query->where('role_group', $roleGroup))
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        // employee id -> day of month -> the shift codes worked that day
+        $grid = $schedules
+            ->groupBy('employee_id')
+            ->map(function (Collection $rows) {
+                return $rows
+                    ->groupBy(fn (DutySchedule $row) => (int) Carbon::parse($row->work_date)->day)
+                    ->map(fn (Collection $day) => $day
+                        ->map(fn (DutySchedule $row) => $row->shiftType?->code ?? '?')
+                        ->unique()
+                        ->values()
+                        ->all());
+            });
+
+        $employees = $schedules
+            ->pluck('employee')
+            ->filter()
+            ->unique('id')
+            ->sortBy('employee_code')
+            ->values();
+
+        $department = $departmentId ? Department::find($departmentId) : null;
+
+        return view('duty-schedules.print', [
+            'month' => $month,
+            'year' => $year,
+            'selectedMonth' => $selectedMonth,
+            'daysInMonth' => $selectedMonth->daysInMonth,
+            'employees' => $employees,
+            'grid' => $grid,
+            'department' => $department,
+            'roleGroup' => $roleGroup,
+            'shiftLegend' => $schedules
+                ->pluck('shiftType')
+                ->filter()
+                ->unique('id')
+                ->sortBy('code')
+                ->values(),
+        ]);
     }
 }

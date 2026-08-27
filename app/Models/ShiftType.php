@@ -17,6 +17,9 @@ class ShiftType extends Model
         'start_time',
         'end_time',
         'crosses_midnight',
+        'is_ot',
+        'ot_multiplier',
+        'ot_flat_rate',
         'color',
         'is_active',
         'description',
@@ -24,6 +27,9 @@ class ShiftType extends Model
 
     protected $casts = [
         'crosses_midnight' => 'boolean',
+        'is_ot' => 'boolean',
+        'ot_multiplier' => 'decimal:2',
+        'ot_flat_rate' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 

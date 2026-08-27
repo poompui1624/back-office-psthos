@@ -271,6 +271,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:duty.create')
         ->name('duty-schedules.bulk-store');
 
+    Route::get('/duty-schedules/print', [DutyScheduleController::class, 'print'])
+        ->middleware('permission:duty.view')
+        ->name('duty-schedules.print');
+
     Route::get('/duty-schedules/calendar', [DutyScheduleController::class, 'calendar'])
         ->middleware('permission:duty.view')
         ->name('duty-schedules.calendar');

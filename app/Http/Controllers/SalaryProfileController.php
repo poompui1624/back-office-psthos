@@ -98,7 +98,7 @@ class SalaryProfileController extends Controller
                 'required',
                 'exists:employees,id',
                 $salaryProfile
-                    ? 'unique:salary_profiles,employee_id,' . $salaryProfile->id
+                    ? 'unique:salary_profiles,employee_id,'.$salaryProfile->id
                     : 'unique:salary_profiles,employee_id',
             ],
             'base_salary' => ['required', 'numeric', 'min:0'],
@@ -112,6 +112,7 @@ class SalaryProfileController extends Controller
             'late_deduction_per_minute' => ['nullable', 'numeric', 'min:0'],
             'early_leave_deduction_per_minute' => ['nullable', 'numeric', 'min:0'],
             'absent_deduction_per_day' => ['nullable', 'numeric', 'min:0'],
+            'ot_rate_per_hour' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string'],
         ]);

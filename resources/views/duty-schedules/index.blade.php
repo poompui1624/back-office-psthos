@@ -67,11 +67,11 @@
                         Excel
                     </a>
 
-                    <button type="button"
-                            onclick="window.print()"
-                            class="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/25">
-                        พิมพ์
-                    </button>
+                    <a href="{{ route('duty-schedules.print', ['month' => $month, 'year' => $year, 'department_id' => $departmentId, 'role_group' => $roleGroup]) }}"
+                       target="_blank"
+                       class="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/25">
+                        พิมพ์ตารางเวร
+                    </a>
                 </div>
             </div>
         </section>
@@ -79,6 +79,26 @@
         @if (session('success'))
             <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800 shadow-sm">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('duty_warnings'))
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm">
+                <div class="text-sm font-semibold text-amber-900">
+                    บันทึกแล้ว แต่มีข้อควรตรวจสอบ {{ count(session('duty_warnings')) }} รายการ
+                </div>
+
+                <ul class="mt-2 space-y-1 text-sm text-amber-800">
+                    @foreach (array_slice(session('duty_warnings'), 0, 20) as $warning)
+                        <li>&bull; {{ $warning }}</li>
+                    @endforeach
+                </ul>
+
+                @if (count(session('duty_warnings')) > 20)
+                    <div class="mt-2 text-xs text-amber-700">
+                        และอีก {{ count(session('duty_warnings')) - 20 }} รายการ
+                    </div>
+                @endif
             </div>
         @endif
 

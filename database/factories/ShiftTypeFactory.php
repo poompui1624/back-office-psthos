@@ -20,6 +20,9 @@ class ShiftTypeFactory extends Factory
             'start_time' => '08:00:00',
             'end_time' => '16:00:00',
             'crosses_midnight' => false,
+            'is_ot' => false,
+            'ot_multiplier' => 1,
+            'ot_flat_rate' => null,
             'color' => fake()->hexColor(),
             'is_active' => true,
             'description' => null,
@@ -62,5 +65,30 @@ class ShiftTypeFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn () => ['is_active' => false]);
+    }
+
+    /**
+     * An overtime shift paid at a multiple of the employee's hourly rate.
+     */
+    public function overtime(float $multiplier = 1.5): static
+    {
+        return $this->state(fn () => [
+            'name' => 'OT '.fake()->unique()->numberBetween(1, 9999),
+            'is_ot' => true,
+            'ot_multiplier' => $multiplier,
+            'ot_flat_rate' => null,
+        ]);
+    }
+
+    /**
+     * An overtime shift paid a fixed amount regardless of its length.
+     */
+    public function overtimeFlat(float $amount): static
+    {
+        return $this->state(fn () => [
+            'name' => 'OT เหมาจ่าย '.fake()->unique()->numberBetween(1, 9999),
+            'is_ot' => true,
+            'ot_flat_rate' => $amount,
+        ]);
     }
 }

@@ -68,4 +68,16 @@ class DutyScheduleFactory extends Factory
     {
         return $this->state(fn () => ['department_id' => $department->id]);
     }
+
+    /**
+     * Pin the shift to an exact window, e.g. one that runs past midnight.
+     */
+    public function window(string $startAt, string $endAt): static
+    {
+        return $this->state(fn () => [
+            'work_date' => Carbon::parse($startAt)->toDateString(),
+            'start_at' => Carbon::parse($startAt),
+            'end_at' => Carbon::parse($endAt),
+        ]);
+    }
 }
