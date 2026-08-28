@@ -1,80 +1,46 @@
 <x-layouts.app title="เครื่องที่ติดตั้ง Software">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">เครื่องที่ติดตั้ง Software</h1>
-            <p class="text-sm text-gray-600">
-                {{ $name }}
-                @if ($version)
-                    / Version: {{ $version }}
-                @endif
-                @if ($publisher)
-                    / Publisher: {{ $publisher }}
-                @endif
-            </p>
-        </div>
+    @php
+        $detail = collect([
+            $name,
+            $version ? 'Version: ' . $version : null,
+            $publisher ? 'Publisher: ' . $publisher : null,
+        ])->filter()->implode(' / ');
+    @endphp
 
-        <a href="{{ route('software-inventory.index') }}"
-           class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-            ย้อนกลับ
-        </a>
-    </div>
+    <x-page-header title="เครื่องที่ติดตั้ง Software" :subtitle="$detail">
+        <x-btn :href="route('software-inventory.index')" variant="secondary">ย้อนกลับ</x-btn>
+    </x-page-header>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">Hostname</th>
-                    <th class="border px-4 py-2 text-left">IP Address</th>
-                    <th class="border px-4 py-2 text-left">OS</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-left">ผู้รับผิดชอบ</th>
-                    <th class="border px-4 py-2 text-left">Last Seen</th>
-                    <th class="border px-4 py-2 text-center">รายละเอียด</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($computers as $computer)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $computer->hostname }}
-                        </td>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>Hostname</x-data-table.th>
+            <x-data-table.th>IP Address</x-data-table.th>
+            <x-data-table.th>OS</x-data-table.th>
+            <x-data-table.th>หน่วยงาน</x-data-table.th>
+            <x-data-table.th>ผู้รับผิดชอบ</x-data-table.th>
+            <x-data-table.th>Last Seen</x-data-table.th>
+            <x-data-table.th align="center">รายละเอียด</x-data-table.th>
+        </x-slot:head>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->ip_address ?? '-' }}
-                        </td>
+        @forelse ($computers as $computer)
+            <x-data-table.row>
+                <x-data-table.td class="font-medium text-slate-900">{{ $computer->hostname }}</x-data-table.td>
+                <x-data-table.td>{{ $computer->ip_address ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $computer->os_name ?? '-' }} {{ $computer->os_version ?? '' }}</x-data-table.td>
+                <x-data-table.td>{{ $computer->department?->name ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $computer->responsibleEmployee?->full_name ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->os_name ?? '-' }}
-                            {{ $computer->os_version ?? '' }}
-                        </td>
+                <x-data-table.td class="tabular-nums">
+                    {{ $computer->last_seen_at?->format('Y-m-d H:i') ?? '-' }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->department?->name ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $computer->responsibleEmployee?->full_name ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $computer->last_seen_at?->format('Y-m-d H:i') ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <a href="{{ route('computers.show', $computer) }}"
-                               class="rounded bg-gray-800 px-3 py-1 text-sm text-white">
-                                เปิด
-                            </a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบเครื่องที่ติดตั้ง Software นี้
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                <x-data-table.td align="center">
+                    <x-btn :href="route('computers.show', $computer)" variant="secondary" size="sm">เปิด</x-btn>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="7" icon="device" title="ไม่พบเครื่องที่ติดตั้ง Software นี้"
+                                description="ข้อมูลมาจากรายงานล่าสุดของ Agent แต่ละเครื่อง" />
+        @endforelse
+    </x-data-table>
 </x-layouts.app>
