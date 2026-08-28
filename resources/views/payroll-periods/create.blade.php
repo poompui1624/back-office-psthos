@@ -1,13 +1,8 @@
 <x-layouts.app title="สร้างรอบเงินเดือน">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">สร้างรอบเงินเดือน</h1>
-        <p class="text-sm text-gray-600">
-            สร้างรอบเงินเดือนประจำเดือน แล้วนำไป Generate สลิป
-        </p>
-    </div>
+    <x-page-header title="สร้างรอบเงินเดือน" subtitle="สร้างรอบเงินเดือนประจำเดือน แล้วนำไป Generate สลิป" />
 
-    <div class="rounded bg-white p-6 shadow">
-        <form method="POST" action="{{ route('payroll-periods.store') }}" class="space-y-4">
+    <div class="card card-pad max-w-4xl">
+        <form method="POST" action="{{ route('payroll-periods.store') }}" class="space-y-6">
             @csrf
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -61,17 +56,7 @@
                 ระบบจะสร้างช่วงวันที่เป็นวันแรกถึงวันสุดท้ายของเดือนอัตโนมัติ
             </div>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    สร้างรอบเงินเดือน
-                </button>
-
-                <a href="{{ route('payroll-periods.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ย้อนกลับ
-                </a>
-            </div>
+            <x-form.actions :cancel="route('payroll-periods.index')" />
         </form>
     </div>
 </x-layouts.app>

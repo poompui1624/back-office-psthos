@@ -1,28 +1,13 @@
 <x-layouts.app title="สร้าง Computer Agent">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">สร้าง Computer Agent</h1>
-        <p class="text-sm text-gray-600">
-            สร้าง Token สำหรับให้โปรแกรม Agent ส่งข้อมูลเครื่อง Client เข้า Server
-        </p>
-    </div>
+    <x-page-header title="สร้าง Computer Agent" subtitle="สร้าง Token สำหรับให้โปรแกรม Agent ส่งข้อมูลเครื่อง Client เข้า Server" />
 
-    <div class="rounded bg-white p-6 shadow">
-        <form method="POST" action="{{ route('computer-agents.store') }}" class="space-y-4">
+    <div class="card card-pad max-w-4xl">
+        <form method="POST" action="{{ route('computer-agents.store') }}" class="space-y-6">
             @csrf
 
             @include('computer-agents._form')
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    สร้าง Token
-                </button>
-
-                <a href="{{ route('computer-agents.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ย้อนกลับ
-                </a>
-            </div>
+            <x-form.actions :cancel="route('computer-agents.index')" />
         </form>
     </div>
 </x-layouts.app>
