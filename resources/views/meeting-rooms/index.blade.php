@@ -1,172 +1,102 @@
 <x-layouts.app title="ห้องประชุม">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ห้องประชุม</h1>
-            <p class="text-sm text-gray-600">จัดการทะเบียนห้องประชุมของโรงพยาบาล</p>
-        </div>
+    <x-page-header title="ห้องประชุม" subtitle="จัดการทะเบียนห้องประชุมของโรงพยาบาล">
+        <x-btn :href="route('meeting-bookings.index')" variant="secondary" icon="calendar">รายการจอง</x-btn>
 
-        <div class="flex gap-2">
-            <a href="{{ route('meeting-bookings.index') }}"
-               class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                รายการจอง
-            </a>
+        @can('meeting.create')
+            <x-btn :href="route('meeting-rooms.create')" icon="building">เพิ่มห้องประชุม</x-btn>
+        @endcan
+    </x-page-header>
 
-            @can('meeting.create')
-                <a href="{{ route('meeting-rooms.create') }}"
-                   class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    เพิ่มห้องประชุม
-                </a>
-            @endcan
-        </div>
-    </div>
+    <x-filter-bar :action="route('meeting-rooms.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search ?? ''" placeholder="รหัส / ชื่อห้อง / สถานที่" />
+        </x-form.field>
+    </x-filter-bar>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>รหัส</x-data-table.th>
+            <x-data-table.th>ชื่อห้อง</x-data-table.th>
+            <x-data-table.th>สถานที่</x-data-table.th>
+            <x-data-table.th align="center">ความจุ</x-data-table.th>
+            <x-data-table.th>อุปกรณ์</x-data-table.th>
+            <x-data-table.th align="center">จำนวนจอง</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+        @forelse ($rooms as $room)
+            @php
+                $facilities = collect([
+                    'โปรเจกเตอร์' => $room->has_projector,
+                    'เครื่องเสียง' => $room->has_sound_system,
+                    'ประชุมทางไกล' => $room->has_video_conference,
+                    'ไวท์บอร์ด' => $room->has_whiteboard,
+                ])->filter()->keys();
+            @endphp
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('meeting-rooms.index') }}" class="flex gap-2">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัส / ชื่อห้อง / สถานที่"
-                   class="w-full rounded border-gray-300">
+            <x-data-table.row>
+                <x-data-table.td class="font-medium text-slate-900">{{ $room->code }}</x-data-table.td>
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ค้นหา
-            </button>
+                <x-data-table.td>
+                    <div>{{ $room->name }}</div>
 
-            <a href="{{ route('meeting-rooms.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ล้าง
-            </a>
-        </form>
-    </div>
+                    @if ($room->description)
+                        <div class="mt-0.5 text-xs text-slate-500">{{ $room->description }}</div>
+                    @endif
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">รหัส</th>
-                    <th class="border px-4 py-2 text-left">ชื่อห้อง</th>
-                    <th class="border px-4 py-2 text-left">สถานที่</th>
-                    <th class="border px-4 py-2 text-center">ความจุ</th>
-                    <th class="border px-4 py-2 text-left">อุปกรณ์</th>
-                    <th class="border px-4 py-2 text-center">จำนวนจอง</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                <x-data-table.td>{{ $room->location ?? '-' }}</x-data-table.td>
+                <x-data-table.td align="center">{{ $room->capacity }}</x-data-table.td>
 
-            <tbody>
-                @forelse ($rooms as $room)
-                    <tr>
-                        <td class="border px-4 py-2">{{ $room->code }}</td>
+                <x-data-table.td>
+                    @if ($facilities->isEmpty())
+                        <span class="text-slate-400">-</span>
+                    @else
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($facilities as $facility)
+                                <x-badge tone="info">{{ $facility }}</x-badge>
+                            @endforeach
+                        </div>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $room->name }}
+                <x-data-table.td align="center">{{ $room->bookings_count }}</x-data-table.td>
 
-                            @if ($room->description)
-                                <div class="text-xs text-gray-500">
-                                    {{ $room->description }}
-                                </div>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$room->is_active ? 'success' : 'slate'" dot>
+                        {{ $room->is_active ? 'ใช้งาน' : 'ปิดใช้งาน' }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $room->location ?? '-' }}
-                        </td>
+                <x-data-table.td align="center">
+                    <div class="flex justify-center gap-2">
+                        @can('meeting.update')
+                            <x-btn :href="route('meeting-rooms.edit', $room)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $room->capacity }}
-                        </td>
+                        @can('meeting.delete')
+                            <form method="POST"
+                                  action="{{ route('meeting-rooms.destroy', $room) }}"
+                                  onsubmit="return confirm('ยืนยันการลบห้องประชุมนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                        <td class="border px-4 py-2">
-                            <div class="flex flex-wrap gap-1 text-xs">
-                                @if ($room->has_projector)
-                                    <span class="rounded bg-blue-100 px-2 py-1 text-blue-800">โปรเจคเตอร์</span>
-                                @endif
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="8" icon="building" title="ไม่พบห้องประชุม"
+                                description="เพิ่มห้องประชุมก่อนจึงจะเปิดให้จองได้">
+                @can('meeting.create')
+                    <x-btn :href="route('meeting-rooms.create')">เพิ่มห้องประชุม</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                                @if ($room->has_sound_system)
-                                    <span class="rounded bg-green-100 px-2 py-1 text-green-800">เครื่องเสียง</span>
-                                @endif
-
-                                @if ($room->has_video_conference)
-                                    <span class="rounded bg-purple-100 px-2 py-1 text-purple-800">Video</span>
-                                @endif
-
-                                @if ($room->has_whiteboard)
-                                    <span class="rounded bg-gray-100 px-2 py-1 text-gray-800">Whiteboard</span>
-                                @endif
-
-                                @if (! $room->has_projector && ! $room->has_sound_system && ! $room->has_video_conference && ! $room->has_whiteboard)
-                                    <span class="text-gray-400">-</span>
-                                @endif
-                            </div>
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            {{ $room->bookings_count }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            @if ($room->is_active)
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    ใช้งาน
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ปิดใช้งาน
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('meeting.update')
-                                    <a href="{{ route('meeting-rooms.edit', $room) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
-
-                                @can('meeting.delete')
-                                    <form method="POST"
-                                          action="{{ route('meeting-rooms.destroy', $room) }}"
-                                          onsubmit="return confirm('ยืนยันการลบห้องประชุมนี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
-                            ยังไม่มีข้อมูลห้องประชุม
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $rooms->links() }}
-    </div>
+    <div class="mt-4">{{ $rooms->links() }}</div>
 </x-layouts.app>
