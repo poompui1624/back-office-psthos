@@ -166,6 +166,19 @@
         </header>
 
         <main class="min-w-0 flex-1 p-4 sm:p-6">
+            {{-- Rendered once here so pages do not each repeat it. --}}
+            @if (session('success'))
+                <x-alert type="success" class="mb-4">{{ session('success') }}</x-alert>
+            @endif
+
+            @if (session('error'))
+                <x-alert type="error" class="mb-4">{{ session('error') }}</x-alert>
+            @endif
+
+            @if (session('warning'))
+                <x-alert type="warning" class="mb-4">{{ session('warning') }}</x-alert>
+            @endif
+
             {{ $slot }}
         </main>
     </div>
