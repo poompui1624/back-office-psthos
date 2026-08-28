@@ -1,148 +1,75 @@
 <x-layouts.app title="ประเภทการลา">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ประเภทการลา</h1>
-            <p class="text-sm text-gray-600">จัดการประเภทการลาของบุคลากร</p>
-        </div>
-
+    <x-page-header title="ประเภทการลา" subtitle="กำหนดประเภทการลาและจำนวนวันต่อปี">
         @can('leave.create')
-            <a href="{{ route('leave-types.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                เพิ่มประเภทการลา
-            </a>
+            <x-btn :href="route('leave-types.create')" icon="clipboard">เพิ่มประเภทการลา</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('leave-types.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search ?? ''" placeholder="รหัส / ชื่อประเภทการลา" />
+        </x-form.field>
+    </x-filter-bar>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>รหัส</x-data-table.th>
+            <x-data-table.th>ชื่อประเภทการลา</x-data-table.th>
+            <x-data-table.th align="center">วันต่อปี</x-data-table.th>
+            <x-data-table.th align="center">ต้องแนบเอกสาร</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('leave-types.index') }}" class="flex gap-2">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัส / ชื่อประเภทการลา"
-                   class="w-full rounded border-gray-300">
+        @forelse ($leaveTypes as $leaveType)
+            <x-data-table.row>
+                <x-data-table.td class="font-medium text-slate-900">{{ $leaveType->code }}</x-data-table.td>
+                <x-data-table.td>{{ $leaveType->name }}</x-data-table.td>
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ค้นหา
-            </button>
+                <x-data-table.td align="center">
+                    {{ $leaveType->default_days_per_year ? rtrim(rtrim(number_format((float) $leaveType->default_days_per_year, 1), '0'), '.') : '-' }}
+                </x-data-table.td>
 
-            <a href="{{ route('leave-types.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ล้าง
-            </a>
-        </form>
-    </div>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$leaveType->requires_document ? 'warning' : 'slate'">
+                        {{ $leaveType->requires_document ? 'ต้องแนบ' : 'ไม่ต้อง' }}
+                    </x-badge>
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">รหัส</th>
-                    <th class="border px-4 py-2 text-left">ชื่อประเภท</th>
-                    <th class="border px-4 py-2 text-center">วัน/ปี</th>
-                    <th class="border px-4 py-2 text-center">ต้องแนบเอกสาร</th>
-                    <th class="border px-4 py-2 text-center">จำนวนคำขอ</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$leaveType->is_active ? 'success' : 'slate'" dot>
+                        {{ $leaveType->is_active ? 'ใช้งาน' : 'ปิดใช้งาน' }}
+                    </x-badge>
+                </x-data-table.td>
 
-            <tbody>
-                @forelse ($leaveTypes as $leaveType)
-                    <tr>
-                        <td class="border px-4 py-2">{{ $leaveType->code }}</td>
+                <x-data-table.td align="center">
+                    <div class="flex justify-center gap-2">
+                        @can('leave.update')
+                            <x-btn :href="route('leave-types.edit', $leaveType)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                        <td class="border px-4 py-2">
-                            {{ $leaveType->name }}
+                        @can('leave.delete')
+                            <form method="POST"
+                                  action="{{ route('leave-types.destroy', $leaveType) }}"
+                                  onsubmit="return confirm('ยืนยันการลบประเภทการลานี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                            @if ($leaveType->description)
-                                <div class="text-xs text-gray-500">
-                                    {{ $leaveType->description }}
-                                </div>
-                            @endif
-                        </td>
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="6" icon="clipboard" title="ไม่พบประเภทการลา"
+                                description="เพิ่มประเภทการลาเพื่อให้บุคลากรเลือกตอนยื่นใบลา">
+                @can('leave.create')
+                    <x-btn :href="route('leave-types.create')">เพิ่มประเภทการลา</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $leaveType->default_days_per_year ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            @if ($leaveType->requires_document)
-                                <span class="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-                                    ต้องแนบ
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ไม่บังคับ
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            {{ $leaveType->leave_requests_count }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            @if ($leaveType->is_active)
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    ใช้งาน
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ปิดใช้งาน
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('leave.update')
-                                    <a href="{{ route('leave-types.edit', $leaveType) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
-
-                                @can('leave.delete')
-                                    <form method="POST"
-                                          action="{{ route('leave-types.destroy', $leaveType) }}"
-                                          onsubmit="return confirm('ยืนยันการลบประเภทการลานี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูลประเภทการลา
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $leaveTypes->links() }}
-    </div>
+    <div class="mt-4">{{ $leaveTypes->links() }}</div>
 </x-layouts.app>

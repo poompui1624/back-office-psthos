@@ -1,157 +1,117 @@
 <x-layouts.app title="ประเภทเวร">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ประเภทเวร</h1>
-            <p class="text-sm text-gray-600">จัดการประเภทเวรและช่วงเวลาทำงาน</p>
-        </div>
-
+    <x-page-header title="ประเภทเวร" subtitle="กำหนดช่วงเวลาเวร สี และอัตราล่วงเวลา">
         @can('duty.create')
-            <a href="{{ route('shift-types.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                เพิ่มประเภทเวร
-            </a>
+            <x-btn :href="route('shift-types.create')" icon="clock">เพิ่มประเภทเวร</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('shift-types.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search ?? ''" placeholder="รหัส / ชื่อเวร" />
+        </x-form.field>
+    </x-filter-bar>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>รหัส</x-data-table.th>
+            <x-data-table.th>ชื่อเวร</x-data-table.th>
+            <x-data-table.th align="center">เวลา</x-data-table.th>
+            <x-data-table.th align="center">ข้ามวัน</x-data-table.th>
+            <x-data-table.th align="center">OT</x-data-table.th>
+            <x-data-table.th align="center">จำนวนตารางเวร</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('shift-types.index') }}" class="flex gap-2">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัสเวร / ชื่อเวร"
-                   class="w-full rounded border-gray-300">
+        @forelse ($shiftTypes as $shiftType)
+            <x-data-table.row>
+                <x-data-table.td>
+                    @php
+                        // Written out rather than interpolated: Tailwind scans source
+                        // statically, so bg-{$colour}-500 would never be generated.
+                        $swatches = [
+                            'blue' => 'bg-blue-500', 'green' => 'bg-emerald-500', 'yellow' => 'bg-amber-500',
+                            'purple' => 'bg-violet-500', 'red' => 'bg-rose-500', 'gray' => 'bg-slate-400',
+                        ];
+                    @endphp
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ค้นหา
-            </button>
+                    <span class="inline-flex items-center gap-2 font-medium text-slate-900">
+                        @if ($swatch = $swatches[$shiftType->color] ?? null)
+                            <span class="h-2.5 w-2.5 rounded-full {{ $swatch }}"></span>
+                        @endif
 
-            <a href="{{ route('shift-types.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ล้าง
-            </a>
-        </form>
-    </div>
+                        {{ $shiftType->code }}
+                    </span>
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">รหัส</th>
-                    <th class="border px-4 py-2 text-left">ชื่อเวร</th>
-                    <th class="border px-4 py-2 text-center">เวลา</th>
-                    <th class="border px-4 py-2 text-center">ข้ามวัน</th>
-                    <th class="border px-4 py-2 text-center">สี</th>
-                    <th class="border px-4 py-2 text-center">จำนวนตารางเวร</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                <x-data-table.td>
+                    <div>{{ $shiftType->name }}</div>
 
-            <tbody>
-                @forelse ($shiftTypes as $shiftType)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $shiftType->code }}
-                        </td>
+                    @if ($shiftType->description)
+                        <div class="mt-0.5 text-xs text-slate-500">{{ $shiftType->description }}</div>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $shiftType->name }}
+                <x-data-table.td align="center" class="tabular-nums">
+                    {{ substr($shiftType->start_time, 0, 5) }} – {{ substr($shiftType->end_time, 0, 5) }}
+                </x-data-table.td>
 
-                            @if ($shiftType->description)
-                                <div class="text-xs text-gray-500">
-                                    {{ $shiftType->description }}
-                                </div>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">
+                    @if ($shiftType->crosses_midnight)
+                        <x-badge tone="violet">ข้ามวัน</x-badge>
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center whitespace-nowrap">
-                            {{ substr($shiftType->start_time, 0, 5) }}
-                            -
-                            {{ substr($shiftType->end_time, 0, 5) }}
-                        </td>
+                <x-data-table.td align="center">
+                    @if ($shiftType->is_ot)
+                        <x-badge tone="warning">
+                            {{ $shiftType->ot_flat_rate !== null
+                                ? 'เหมา ' . number_format((float) $shiftType->ot_flat_rate)
+                                : 'x' . rtrim(rtrim(number_format((float) $shiftType->ot_multiplier, 2), '0'), '.') }}
+                        </x-badge>
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($shiftType->crosses_midnight)
-                                <span class="rounded bg-purple-100 px-2 py-1 text-xs text-purple-800">
-                                    ใช่
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ไม่ใช่
-                                </span>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">{{ $shiftType->duty_schedules_count }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $shiftType->color ?? '-' }}
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$shiftType->is_active ? 'success' : 'slate'" dot>
+                        {{ $shiftType->is_active ? 'ใช้งาน' : 'ปิดใช้งาน' }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $shiftType->duty_schedules_count }}
-                        </td>
+                <x-data-table.td align="center">
+                    <div class="flex justify-center gap-2">
+                        @can('duty.update')
+                            <x-btn :href="route('shift-types.edit', $shiftType)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($shiftType->is_active)
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    ใช้งาน
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ปิดใช้งาน
-                                </span>
-                            @endif
-                        </td>
+                        @can('duty.delete')
+                            <form method="POST"
+                                  action="{{ route('shift-types.destroy', $shiftType) }}"
+                                  onsubmit="return confirm('ยืนยันการลบประเภทเวรนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('duty.update')
-                                    <a href="{{ route('shift-types.edit', $shiftType) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="8" icon="clock" title="ไม่พบประเภทเวร"
+                                description="เพิ่มประเภทเวรก่อนจึงจะจัดตารางเวรได้">
+                @can('duty.create')
+                    <x-btn :href="route('shift-types.create')">เพิ่มประเภทเวร</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                                @can('duty.delete')
-                                    <form method="POST"
-                                          action="{{ route('shift-types.destroy', $shiftType) }}"
-                                          onsubmit="return confirm('ยืนยันการลบประเภทเวรนี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูลประเภทเวร
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $shiftTypes->links() }}
-    </div>
+    <div class="mt-4">{{ $shiftTypes->links() }}</div>
 </x-layouts.app>

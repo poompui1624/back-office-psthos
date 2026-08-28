@@ -1,197 +1,127 @@
 <x-layouts.app title="ระบบการลา">
-    <div class="flex gap-2">
-        <a href="{{ route('leave-requests.dashboard') }}"
-        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-            Dashboard
-        </a>
-
-        <a href="{{ route('leave-requests.calendar') }}"
-        class="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-800">
-            ปฏิทินการลา
-        </a>
+    <x-page-header title="ระบบการลา" subtitle="รายการคำขอลาของบุคลากร">
+        <x-btn :href="route('leave-requests.dashboard')" variant="secondary" icon="chart">Dashboard</x-btn>
+        <x-btn :href="route('leave-requests.calendar')" variant="secondary" icon="calendar">ปฏิทินการลา</x-btn>
 
         @can('leave.create')
-            <a href="{{ route('leave-requests.create') }}"
-            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                ยื่นคำขอลา
-            </a>
+            <x-btn :href="route('leave-requests.create')" icon="calendar">ยื่นคำขอลา</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ระบบการลา</h1>
-            <p class="text-sm text-gray-600">รายการคำขอลาของบุคลากร</p>
-        </div>
+    <x-filter-bar :action="route('leave-requests.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search" placeholder="เลขคำขอ / ชื่อบุคลากร / ประเภทลา" />
+        </x-form.field>
 
-        @can('leave.create')
-            <a href="{{ route('leave-requests.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                ยื่นคำขอลา
-            </a>
-        @endcan
-    </div>
+        <x-form.field label="สถานะ">
+            @php
+                $statuses = ['pending' => 'รออนุมัติ', 'approved' => 'อนุมัติแล้ว', 'rejected' => 'ไม่อนุมัติ', 'cancelled' => 'ยกเลิก'];
+            @endphp
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('leave-requests.index') }}" class="grid gap-3 md:grid-cols-4">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหาเลขคำขอ / ชื่อบุคลากร / ประเภทลา"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <select name="status" class="rounded border-gray-300">
+            <x-form.select name="status" class="w-44">
                 <option value="">ทุกสถานะ</option>
-                <option value="pending" @selected($status === 'pending')>รออนุมัติ</option>
-                <option value="approved" @selected($status === 'approved')>อนุมัติแล้ว</option>
-                <option value="rejected" @selected($status === 'rejected')>ไม่อนุมัติ</option>
-                <option value="cancelled" @selected($status === 'cancelled')>ยกเลิก</option>
-            </select>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
+                @foreach ($statuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
-                <a href="{{ route('leave-requests.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>เลขคำขอ</x-data-table.th>
+            <x-data-table.th>บุคลากร</x-data-table.th>
+            <x-data-table.th>ประเภทการลา</x-data-table.th>
+            <x-data-table.th>ช่วงวันที่</x-data-table.th>
+            <x-data-table.th align="center">จำนวนวัน</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th>ผู้อนุมัติ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">เลขคำขอ</th>
-                    <th class="border px-4 py-2 text-left">บุคลากร</th>
-                    <th class="border px-4 py-2 text-left">ประเภทการลา</th>
-                    <th class="border px-4 py-2 text-left">ช่วงวันที่</th>
-                    <th class="border px-4 py-2 text-center">จำนวนวัน</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-left">ผู้อนุมัติ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+        @forelse ($leaveRequests as $leaveRequest)
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $leaveRequest->request_no }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $leaveRequest->created_at->format('Y-m-d H:i') }}</div>
+                </x-data-table.td>
 
-            <tbody>
-                @forelse ($leaveRequests as $leaveRequest)
-                    <tr>
-                        <td class="border px-4 py-2 whitespace-nowrap">
-                            {{ $leaveRequest->request_no }}
-                            <div class="text-xs text-gray-500">
-                                {{ $leaveRequest->created_at->format('Y-m-d H:i') }}
-                            </div>
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $leaveRequest->employee?->full_name ?? '-' }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $leaveRequest->department?->name ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $leaveRequest->employee?->full_name ?? '-' }}
-                            <div class="text-xs text-gray-500">
-                                {{ $leaveRequest->department?->name ?? '-' }}
-                            </div>
-                        </td>
+                <x-data-table.td>{{ $leaveRequest->leaveType?->name ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $leaveRequest->leaveType?->name ?? '-' }}
-                        </td>
+                <x-data-table.td class="tabular-nums">
+                    {{ $leaveRequest->start_date?->format('Y-m-d') }}
+                    <span class="text-slate-400">–</span>
+                    {{ $leaveRequest->end_date?->format('Y-m-d') }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $leaveRequest->start_date?->format('Y-m-d') }}
-                            ถึง
-                            {{ $leaveRequest->end_date?->format('Y-m-d') }}
-                        </td>
+                <x-data-table.td align="center">{{ $leaveRequest->total_days }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $leaveRequest->total_days }}
-                        </td>
+                <x-data-table.td align="center">
+                    @php
+                        $tone = match ($leaveRequest->status) {
+                            'pending' => 'warning',
+                            'approved' => 'success',
+                            'rejected' => 'danger',
+                            'cancelled' => 'slate',
+                            default => 'slate',
+                        };
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($leaveRequest->status === 'pending')
-                                <span class="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-                                    รออนุมัติ
-                                </span>
-                            @elseif ($leaveRequest->status === 'approved')
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    อนุมัติแล้ว
-                                </span>
-                            @elseif ($leaveRequest->status === 'rejected')
-                                <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-800">
-                                    ไม่อนุมัติ
-                                </span>
-                            @elseif ($leaveRequest->status === 'cancelled')
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    ยกเลิก
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    {{ $leaveRequest->status }}
-                                </span>
-                            @endif
-                        </td>
+                        $label = match ($leaveRequest->status) {
+                            'pending' => 'รออนุมัติ',
+                            'approved' => 'อนุมัติแล้ว',
+                            'rejected' => 'ไม่อนุมัติ',
+                            'cancelled' => 'ยกเลิก',
+                            default => $leaveRequest->status,
+                        };
+                    @endphp
 
-                        <td class="border px-4 py-2">
-                            {{ $leaveRequest->approver?->name ?? '-' }}
-                        </td>
+                    <x-badge :tone="$tone" dot>{{ $label }}</x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex flex-wrap justify-center gap-2">
-                                <a href="{{ route('leave-requests.show', $leaveRequest) }}"
-                                   class="rounded bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-900">
-                                    รายละเอียด
-                                </a>
+                <x-data-table.td>{{ $leaveRequest->approver?->name ?? '-' }}</x-data-table.td>
 
-                                @if ($leaveRequest->isPending())
-                                    @can('leave.update')
-                                        <a href="{{ route('leave-requests.edit', $leaveRequest) }}"
-                                           class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                            แก้ไข
-                                        </a>
-                                    @endcan
+                <x-data-table.td align="center">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <x-btn :href="route('leave-requests.show', $leaveRequest)" variant="secondary" size="sm">
+                            รายละเอียด
+                        </x-btn>
 
-                                    @can('leave.delete')
-                                        <form method="POST"
-                                              action="{{ route('leave-requests.destroy', $leaveRequest) }}"
-                                              onsubmit="return confirm('ยืนยันการลบคำขอนี้?')">
-                                            @csrf
-                                            @method('DELETE')
+                        @if ($leaveRequest->isPending())
+                            @can('leave.update')
+                                <x-btn :href="route('leave-requests.edit', $leaveRequest)" variant="warning" size="sm">
+                                    แก้ไข
+                                </x-btn>
+                            @endcan
 
-                                            <button type="submit"
-                                                    class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                                ลบ
-                                            </button>
-                                        </form>
-                                    @endcan
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบคำขอลา
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                            @can('leave.delete')
+                                <form method="POST"
+                                      action="{{ route('leave-requests.destroy', $leaveRequest) }}"
+                                      onsubmit="return confirm('ยืนยันการลบคำขอนี้?')">
+                                    @csrf
+                                    @method('DELETE')
 
-    <div class="mt-4">
-        {{ $leaveRequests->links() }}
-    </div>
+                                    <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                                </form>
+                            @endcan
+                        @endif
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="8" icon="calendar" title="ไม่พบคำขอลา"
+                                description="ลองเปลี่ยนคำค้นหาหรือสถานะ">
+                @can('leave.create')
+                    <x-btn :href="route('leave-requests.create')">ยื่นคำขอลา</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
+
+    <div class="mt-4">{{ $leaveRequests->links() }}</div>
 </x-layouts.app>
