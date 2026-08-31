@@ -1,5 +1,5 @@
 @props([
-    'variant' => 'primary',   // primary | secondary | danger | warning | ghost
+    'variant' => 'primary',   // primary | secondary | success | danger | warning | ghost
     'size' => 'md',           // sm | md
     'icon' => null,
     'href' => null,
@@ -10,6 +10,7 @@
     $variants = [
         'primary' => 'bg-brand-500 text-white shadow-sm shadow-brand-500/25 hover:bg-brand-600 focus-visible:outline-brand-500',
         'secondary' => 'border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-slate-400',
+        'success' => 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 focus-visible:outline-emerald-500',
         'danger' => 'bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700 focus-visible:outline-rose-500',
         'warning' => 'bg-amber-500 text-white shadow-sm shadow-amber-500/20 hover:bg-amber-600 focus-visible:outline-amber-500',
         'ghost' => 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-400',

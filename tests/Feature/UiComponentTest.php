@@ -53,6 +53,7 @@ test('every button variant produces its own colour', function (string $variant, 
 })->with([
     ['primary', 'bg-brand-500'],
     ['secondary', 'bg-white'],
+    ['success', 'bg-emerald-600'],
     ['danger', 'bg-rose-600'],
     ['warning', 'bg-amber-500'],
     ['ghost', 'hover:bg-slate-100'],
