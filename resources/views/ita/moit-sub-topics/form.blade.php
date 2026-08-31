@@ -1,24 +1,21 @@
 <div class="grid gap-4 md:grid-cols-2">
-    <div>
-        <label class="mb-1 block text-sm font-medium text-gray-700">ปีงบประมาณ</label>
-        <select name="fiscal_year_id" id="fiscal_year_id" class="w-full rounded border-gray-300" required>
+    {{-- The script below finds these two by id; <x-form.select> emits id="{name}". --}}
+    <x-form.field label="ปีงบประมาณ" name="fiscal_year_id" required>
+        <x-form.select name="fiscal_year_id" required>
             <option value="">-- เลือกปีงบประมาณ --</option>
+
             @foreach ($fiscalYears as $year)
-                <option value="{{ $year->id }}"
-                    @selected(old('fiscal_year_id', $subTopic?->fiscal_year_id) == $year->id)>
+                <option value="{{ $year->id }}" @selected(old('fiscal_year_id', $subTopic?->fiscal_year_id) == $year->id)>
                     {{ $year->year }}
                 </option>
             @endforeach
-        </select>
-        @error('fiscal_year_id')
-            <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-        @enderror
-    </div>
+        </x-form.select>
+    </x-form.field>
 
-    <div>
-        <label class="mb-1 block text-sm font-medium text-gray-700">หัวข้อหลัก MOIT</label>
-        <select name="main_topic_id" id="main_topic_id" class="w-full rounded border-gray-300" required>
+    <x-form.field label="หัวข้อหลัก MOIT" name="main_topic_id" required>
+        <x-form.select name="main_topic_id" required>
             <option value="">-- เลือก MOIT --</option>
+
             @foreach ($mainTopics as $topic)
                 <option value="{{ $topic->id }}"
                         data-year="{{ $topic->fiscal_year_id }}"
@@ -26,69 +23,29 @@
                     {{ $topic->code }} {{ Str::limit($topic->title, 80) }}
                 </option>
             @endforeach
-        </select>
-        @error('main_topic_id')
-            <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-        @enderror
-    </div>
+        </x-form.select>
+    </x-form.field>
 </div>
 
 <div class="grid gap-4 md:grid-cols-2">
-    <div>
-        <label class="mb-1 block text-sm font-medium text-gray-700">รหัสหัวข้อย่อย</label>
-        <input type="text"
-               name="code"
-               value="{{ old('code', $subTopic?->code) }}"
-               class="w-full rounded border-gray-300"
-               placeholder="เช่น 1.1"
-               required>
-        @error('code')
-            <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-        @enderror
-    </div>
+    <x-form.field label="รหัสหัวข้อย่อย" name="code" required>
+        <x-form.input name="code" :value="old('code', $subTopic?->code)" placeholder="เช่น 1.1" required />
+    </x-form.field>
 
-    <div>
-        <label class="mb-1 block text-sm font-medium text-gray-700">ลำดับแสดงผล</label>
-        <input type="number"
-               name="sort_order"
-               value="{{ old('sort_order', $subTopic?->sort_order ?? 0) }}"
-               class="w-full rounded border-gray-300"
-               min="0">
-        @error('sort_order')
-            <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-        @enderror
-    </div>
+    <x-form.field label="ลำดับแสดงผล" name="sort_order">
+        <x-form.input type="number" name="sort_order" :value="old('sort_order', $subTopic?->sort_order ?? 0)" min="0" />
+    </x-form.field>
 </div>
 
-<div>
-    <label class="mb-1 block text-sm font-medium text-gray-700">หัวข้อย่อย</label>
-    <textarea name="title"
-              rows="4"
-              class="w-full rounded border-gray-300"
-              required>{{ old('title', $subTopic?->title) }}</textarea>
-    @error('title')
-        <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-    @enderror
-</div>
+<x-form.field label="หัวข้อย่อย" name="title" required>
+    <x-form.textarea name="title" rows="4" :value="old('title', $subTopic?->title)" required />
+</x-form.field>
 
-<div>
-    <label class="mb-1 block text-sm font-medium text-gray-700">รายละเอียดเพิ่มเติม</label>
-    <textarea name="description"
-              rows="3"
-              class="w-full rounded border-gray-300">{{ old('description', $subTopic?->description) }}</textarea>
-    @error('description')
-        <div class="mt-1 text-sm text-red-600">{{ $message }}</div>
-    @enderror
-</div>
+<x-form.field label="รายละเอียดเพิ่มเติม" name="description">
+    <x-form.textarea name="description" rows="3" :value="old('description', $subTopic?->description)" />
+</x-form.field>
 
-<label class="flex items-center gap-2">
-    <input type="checkbox"
-           name="is_active"
-           value="1"
-           @checked(old('is_active', $subTopic?->is_active ?? true))
-           class="rounded border-gray-300">
-    <span class="text-sm text-gray-700">เปิดใช้งาน</span>
-</label>
+<x-form.checkbox name="is_active" label="เปิดใช้งาน" :checked="old('is_active', $subTopic?->is_active ?? true)" />
 
 <script>
     const fiscalYearSelect = document.getElementById('fiscal_year_id');
