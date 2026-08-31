@@ -135,38 +135,14 @@
     </div>
 
     <div class="page">
+        {{--
+            The logo, hospital name, address, and phone come from
+            print._document-header above, the way the other three print views
+            do it. This block carries only what is specific to a payslip.
+        --}}
         <div class="header">
-            @php
-                $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
-                $hospitalName = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
-                $hospitalAddress = function_exists('setting') ? setting('hospital.address', '') : '';
-                $hospitalPhone = function_exists('setting') ? setting('hospital.phone', '') : '';
-            @endphp
-
-            @if ($logoUrl)
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <img src="{{ $logoUrl }}"
-                        alt="logo"
-                        style="height: 70px; max-width: 120px; object-fit: contain;">
-                </div>
-            @endif
-
             <div class="title">สลิปเงินเดือน</div>
-            <div class="subtitle">
-                {{ $hospitalName }}
-            </div>
 
-            @if ($hospitalAddress)
-                <div class="subtitle">
-                    {{ $hospitalAddress }}
-                </div>
-            @endif
-
-            @if ($hospitalPhone)
-                <div class="subtitle">
-                    โทร. {{ $hospitalPhone }}
-                </div>
-            @endif
             <div class="subtitle">
                 รอบ {{ $payslip->payrollPeriod?->name }}
                 |
