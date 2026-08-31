@@ -1,269 +1,169 @@
 <x-layouts.app title="รายละเอียดรอบเงินเดือน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">
-                {{ $payrollPeriod->name }}
-            </h1>
-            <p class="text-sm text-gray-600">
-                {{ $payrollPeriod->start_date?->format('Y-m-d') }}
-                ถึง
-                {{ $payrollPeriod->end_date?->format('Y-m-d') }}
-            </p>
-        </div>
+    @php
+        $periodStatuses = ['draft' => 'ร่าง', 'generated' => 'สร้างสลิปแล้ว', 'closed' => 'ปิดรอบแล้ว'];
+        $slipStatuses = ['draft' => 'ร่าง', 'approved' => 'อนุมัติแล้ว'];
+        $slipTones = ['draft' => 'slate', 'approved' => 'success'];
 
-        <div class="flex gap-2">
-            @if ($payrollPeriod->status !== 'closed')
-                @can('payroll.generate')
-                    <form method="POST"
-                          action="{{ route('payroll-periods.generate', $payrollPeriod) }}"
-                          onsubmit="return confirm('ยืนยันการ Generate สลิปเงินเดือนรอบนี้?')">
-                        @csrf
+        $range = $payrollPeriod->start_date?->format('Y-m-d') . ' ถึง ' . $payrollPeriod->end_date?->format('Y-m-d');
+    @endphp
 
-                        <button type="submit"
-                                class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                            Generate สลิป
-                        </button>
-                    </form>
-                @endcan
+    <x-page-header :title="$payrollPeriod->name" :subtitle="$range">
+        @if ($payrollPeriod->status !== 'closed')
+            @can('payroll.generate')
+                <form method="POST"
+                      action="{{ route('payroll-periods.generate', $payrollPeriod) }}"
+                      onsubmit="return confirm('ยืนยันการ Generate สลิปเงินเดือนรอบนี้?')">
+                    @csrf
 
-                @can('payroll.update')
-                    <form method="POST"
-                          action="{{ route('payroll-periods.close', $payrollPeriod) }}"
-                          onsubmit="return confirm('ยืนยันการปิดรอบเงินเดือนนี้? หลังปิดแล้วไม่ควร Generate ใหม่')">
-                        @csrf
+                    <x-btn type="submit" icon="refresh">Generate สลิป</x-btn>
+                </form>
+            @endcan
 
-                        <button type="submit"
-                                class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700">
-                            ปิดรอบ
-                        </button>
-                    </form>
-                @endcan
-            @endif
+            @can('payroll.update')
+                <form method="POST"
+                      action="{{ route('payroll-periods.close', $payrollPeriod) }}"
+                      onsubmit="return confirm('ยืนยันการปิดรอบเงินเดือนนี้? หลังปิดแล้วไม่ควร Generate ใหม่')">
+                    @csrf
 
-            <a href="{{ route('payroll-periods.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ย้อนกลับ
-            </a>
-        </div>
+                    <x-btn type="submit" variant="success" icon="approvals">ปิดรอบ</x-btn>
+                </form>
+            @endcan
+        @endif
+
+        <x-btn :href="route('payroll-periods.index')" variant="secondary">ย้อนกลับ</x-btn>
+    </x-page-header>
+
+    <div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <x-stat-card label="สถานะ" :value="$periodStatuses[$payrollPeriod->status] ?? $payrollPeriod->status"
+                     icon="clipboard" tone="violet" />
+        <x-stat-card label="จำนวนสลิป" :value="number_format($payslips->total())" icon="document" />
+        <x-stat-card label="สร้างโดย" :value="$payrollPeriod->creator?->name ?? '-'" icon="user" tone="violet" />
+        <x-stat-card label="Generate ล่าสุด" :value="$payrollPeriod->generated_at?->format('Y-m-d') ?? '-'"
+                     icon="clock" tone="amber" />
     </div>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    <div class="mb-6 grid gap-4 md:grid-cols-4">
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">สถานะ</div>
-            <div class="mt-2 text-xl font-bold">
-                {{ $payrollPeriod->status }}
-            </div>
-        </div>
-
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">จำนวนสลิป</div>
-            <div class="mt-2 text-xl font-bold">
-                {{ $payslips->total() }}
-            </div>
-        </div>
-
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">สร้างโดย</div>
-            <div class="mt-2 text-xl font-bold">
-                {{ $payrollPeriod->creator?->name ?? '-' }}
-            </div>
-        </div>
-
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">Generate ล่าสุด</div>
-            <div class="mt-2 text-xl font-bold">
-                {{ $payrollPeriod->generated_at?->format('Y-m-d') ?? '-' }}
-            </div>
-        </div>
+    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+        <x-stat-card label="รายได้รวม" :value="number_format($totals->gross_income, 2)" icon="money" tone="emerald" />
+        <x-stat-card label="รายการหักรวม" :value="number_format($totals->total_deduction, 2)" icon="trend-down" tone="rose" />
+        <x-stat-card label="จ่ายสุทธิรวม" :value="number_format($totals->net_pay, 2)" icon="money" />
     </div>
 
-    <div class="mb-6 grid gap-4 md:grid-cols-3">
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">รายได้รวม</div>
-            <div class="mt-2 text-2xl font-bold text-green-700">
-                {{ number_format($payrollPeriod->payslips()->sum('gross_income'), 2) }}
-            </div>
-        </div>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>บุคลากร</x-data-table.th>
+            <x-data-table.th>หน่วยงาน</x-data-table.th>
+            <x-data-table.th align="right">รายได้</x-data-table.th>
+            <x-data-table.th align="right">รายการหัก</x-data-table.th>
+            <x-data-table.th align="right">สุทธิ</x-data-table.th>
+            <x-data-table.th align="center">มาสาย</x-data-table.th>
+            <x-data-table.th align="center">กลับก่อน</x-data-table.th>
+            <x-data-table.th align="center">ขาดงาน</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">รายการหักรวม</div>
-            <div class="mt-2 text-2xl font-bold text-red-700">
-                {{ number_format($payrollPeriod->payslips()->sum('total_deduction'), 2) }}
-            </div>
-        </div>
+        @forelse ($payslips as $payslip)
+            @php
+                // items is eager loaded, so these filter in memory rather than
+                // running two queries for every row on the page.
+                $income = $payslip->items->where('type', 'income')->sortBy('sort_order');
+                $deductions = $payslip->items->where('type', 'deduction')->sortBy('sort_order');
+            @endphp
 
-        <div class="rounded bg-white p-5 shadow">
-            <div class="text-sm text-gray-500">จ่ายสุทธิรวม</div>
-            <div class="mt-2 text-2xl font-bold text-blue-700">
-                {{ number_format($payrollPeriod->payslips()->sum('net_pay'), 2) }}
-            </div>
-        </div>
-    </div>
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $payslip->employee?->employee_code }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $payslip->employee?->full_name ?? '-' }}</div>
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">บุคลากร</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-right">รายได้</th>
-                    <th class="border px-4 py-2 text-right">รายการหัก</th>
-                    <th class="border px-4 py-2 text-right">สุทธิ</th>
-                    <th class="border px-4 py-2 text-center">มาสาย</th>
-                    <th class="border px-4 py-2 text-center">กลับก่อน</th>
-                    <th class="border px-4 py-2 text-center">ขาดงาน</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                <x-data-table.td>{{ $payslip->employee?->department?->name ?? '-' }}</x-data-table.td>
 
-            <tbody>
-                @forelse ($payslips as $payslip)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $payslip->employee?->employee_code }}
-                            <div class="text-xs text-gray-500">
-                                {{ $payslip->employee?->full_name ?? '-' }}
-                            </div>
-                        </td>
+                <x-data-table.td align="right" class="tabular-nums text-emerald-700">
+                    {{ number_format($payslip->gross_income, 2) }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $payslip->employee?->department?->name ?? '-' }}
-                        </td>
+                <x-data-table.td align="right" class="tabular-nums text-rose-700">
+                    {{ number_format($payslip->total_deduction, 2) }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-right">
-                            {{ number_format($payslip->gross_income, 2) }}
-                        </td>
+                <x-data-table.td align="right" class="tabular-nums font-bold text-slate-900">
+                    {{ number_format($payslip->net_pay, 2) }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-right">
-                            {{ number_format($payslip->total_deduction, 2) }}
-                        </td>
+                <x-data-table.td align="center" class="tabular-nums">{{ $payslip->late_minutes }} นาที</x-data-table.td>
+                <x-data-table.td align="center" class="tabular-nums">{{ $payslip->early_leave_minutes }} นาที</x-data-table.td>
+                <x-data-table.td align="center" class="tabular-nums">{{ $payslip->absent_days }} วัน</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-right font-bold">
-                            {{ number_format($payslip->net_pay, 2) }}
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$slipTones[$payslip->status] ?? 'slate'" dot>
+                        {{ $slipStatuses[$payslip->status] ?? $payslip->status }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $payslip->late_minutes }} นาที
-                        </td>
+                <x-data-table.td align="center">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <x-btn :href="route('payslips.show', $payslip)" variant="secondary" size="sm">ดูสลิป</x-btn>
+                        <x-btn :href="route('payslips.print', $payslip)" target="_blank" size="sm">พิมพ์</x-btn>
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $payslip->early_leave_minutes }} นาที
-                        </td>
+            <tr class="bg-slate-50/70">
+                <td colspan="10" class="px-4 py-3">
+                    <details class="group">
+                        <summary class="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+                            <x-icon name="chevron-right" class="h-3.5 w-3.5 transition group-open:rotate-90" />
+                            ดูรายละเอียดรายการเงินเดือน
+                        </summary>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $payslip->absent_days }} วัน
-                        </td>
+                        <div class="mt-3 grid gap-4 md:grid-cols-2">
+                            <div>
+                                <h3 class="mb-2 font-bold text-emerald-700">รายได้</h3>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($payslip->status === 'draft')
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    ร่าง
-                                </span>
-                            @elseif ($payslip->status === 'approved')
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    อนุมัติแล้ว
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    {{ $payslip->status }}
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                <a href="{{ route('payslips.show', $payslip) }}"
-                                class="rounded bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-900">
-                                    ดูสลิป
-                                </a>
-
-                                <a href="{{ route('payslips.print', $payslip) }}"
-                                target="_blank"
-                                class="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
-                                    พิมพ์
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr class="bg-gray-50">
-                        <td colspan="10" class="border px-4 py-3">
-                            <details>
-                                <summary class="cursor-pointer text-sm font-medium text-gray-700">
-                                    ดูรายละเอียดรายการเงินเดือน
-                                </summary>
-
-                                <div class="mt-3 grid gap-4 md:grid-cols-2">
-                                    <div>
-                                        <h3 class="mb-2 font-bold text-green-700">รายได้</h3>
-
-                                        <table class="w-full border-collapse bg-white">
-                                            <tbody>
-                                                @foreach ($payslip->items()->where('type', 'income')->orderBy('sort_order')->get() as $item)
-                                                    <tr>
-                                                        <td class="border px-3 py-2">{{ $item->name }}</td>
-                                                        <td class="border px-3 py-2 text-right">
-                                                            {{ number_format($item->amount, 2) }}
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <div>
-                                        <h3 class="mb-2 font-bold text-red-700">รายการหัก</h3>
-
-                                        <table class="w-full border-collapse bg-white">
-                                            <tbody>
-                                                @foreach ($payslip->items()->where('type', 'deduction')->orderBy('sort_order')->get() as $item)
-                                                    <tr>
-                                                        <td class="border px-3 py-2">
-                                                            {{ $item->name }}
-
-                                                            @if ($item->quantity > 1)
-                                                                <div class="text-xs text-gray-500">
-                                                                    {{ $item->quantity }} x {{ number_format($item->unit_amount, 2) }}
-                                                                </div>
-                                                            @endif
-                                                        </td>
-                                                        <td class="border px-3 py-2 text-right">
-                                                            {{ number_format($item->amount, 2) }}
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                    @forelse ($income as $item)
+                                        <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-0">
+                                            <span class="text-slate-700">{{ $item->name }}</span>
+                                            <span class="tabular-nums text-slate-900">{{ number_format($item->amount, 2) }}</span>
+                                        </div>
+                                    @empty
+                                        <div class="px-3 py-2 text-sm text-slate-400">ไม่มีรายการ</div>
+                                    @endforelse
                                 </div>
-                            </details>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" class="border px-4 py-6 text-center text-gray-500">
-                            ยังไม่มีสลิปเงินเดือนในรอบนี้
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                            </div>
 
-    <div class="mt-4">
-        {{ $payslips->links() }}
-    </div>
+                            <div>
+                                <h3 class="mb-2 font-bold text-rose-700">รายการหัก</h3>
+
+                                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                    @forelse ($deductions as $item)
+                                        <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-0">
+                                            <span class="text-slate-700">
+                                                {{ $item->name }}
+
+                                                @if ($item->quantity > 1)
+                                                    <span class="block text-xs text-slate-500">
+                                                        {{ $item->quantity }} x {{ number_format($item->unit_amount, 2) }}
+                                                    </span>
+                                                @endif
+                                            </span>
+
+                                            <span class="tabular-nums text-slate-900">{{ number_format($item->amount, 2) }}</span>
+                                        </div>
+                                    @empty
+                                        <div class="px-3 py-2 text-sm text-slate-400">ไม่มีรายการ</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </td>
+            </tr>
+        @empty
+            <x-data-table.empty :colspan="10" icon="document" title="ยังไม่มีสลิปเงินเดือนในรอบนี้"
+                                description="กด Generate สลิป เพื่อสร้างจากข้อมูลเงินเดือนและเวลาทำงาน" />
+        @endforelse
+    </x-data-table>
+
+    <div class="mt-4">{{ $payslips->links() }}</div>
 </x-layouts.app>

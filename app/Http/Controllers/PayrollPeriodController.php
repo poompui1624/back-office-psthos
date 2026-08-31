@@ -85,12 +85,21 @@ class PayrollPeriodController extends Controller
         $payrollPeriod->load('creator');
 
         $payslips = Payslip::query()
-            ->with(['employee.department'])
+            // items is eager loaded because the view lists each slip's income and
+            // deduction lines inline; without it the page runs two queries per row.
+            ->with(['employee.department', 'items'])
             ->where('payroll_period_id', $payrollPeriod->id)
             ->orderBy('employee_id')
             ->paginate(50);
 
-        return view('payroll-periods.show', compact('payrollPeriod', 'payslips'));
+        $totals = Payslip::query()
+            ->where('payroll_period_id', $payrollPeriod->id)
+            ->selectRaw('coalesce(sum(gross_income), 0) as gross_income')
+            ->selectRaw('coalesce(sum(total_deduction), 0) as total_deduction')
+            ->selectRaw('coalesce(sum(net_pay), 0) as net_pay')
+            ->first();
+
+        return view('payroll-periods.show', compact('payrollPeriod', 'payslips', 'totals'));
     }
 
     public function generate(PayrollPeriod $payrollPeriod)
