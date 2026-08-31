@@ -93,7 +93,7 @@ class SalaryProfileController extends Controller
 
     private function validateProfile(Request $request, ?SalaryProfile $salaryProfile = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'employee_id' => [
                 'required',
                 'exists:employees,id',
@@ -116,5 +116,12 @@ class SalaryProfileController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string'],
         ]);
+
+        // An unchecked box posts nothing, so without this the flag can only
+        // ever be turned on. Every other controller with an is_active already
+        // does this; this one was missed.
+        $validated['is_active'] = $request->boolean('is_active');
+
+        return $validated;
     }
 }

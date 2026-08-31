@@ -1,154 +1,85 @@
 <x-layouts.app title="ตั้งค่าเงินเดือน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ตั้งค่าเงินเดือน</h1>
-            <p class="text-sm text-gray-600">
-                ตั้งค่าเงินเดือน รายได้ รายการหัก และอัตราหักจากเวลาทำงาน
-            </p>
-        </div>
+    <x-page-header title="ตั้งค่าเงินเดือน"
+                   subtitle="ตั้งค่าเงินเดือน รายได้ รายการหัก และอัตราหักจากเวลาทำงาน">
+        <x-btn :href="route('payroll-periods.index')" variant="secondary" icon="cash">รอบเงินเดือน</x-btn>
 
-        <div class="flex gap-2">
-            <a href="{{ route('payroll-periods.index') }}"
-               class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                รอบเงินเดือน
-            </a>
+        @can('payroll.create')
+            <x-btn :href="route('salary-profiles.create')" icon="cog">เพิ่มข้อมูลเงินเดือน</x-btn>
+        @endcan
+    </x-page-header>
 
-            @can('payroll.create')
-                <a href="{{ route('salary-profiles.create') }}"
-                   class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    เพิ่มข้อมูลเงินเดือน
-                </a>
-            @endcan
-        </div>
-    </div>
+    <x-filter-bar :action="route('salary-profiles.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search" placeholder="รหัส / ชื่อบุคลากร" />
+        </x-form.field>
+    </x-filter-bar>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>บุคลากร</x-data-table.th>
+            <x-data-table.th>หน่วยงาน</x-data-table.th>
+            <x-data-table.th align="right">เงินเดือน</x-data-table.th>
+            <x-data-table.th align="right">รายได้รวมตั้งต้น</x-data-table.th>
+            <x-data-table.th align="right">หักประจำ</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('salary-profiles.index') }}" class="flex gap-2">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัส / ชื่อบุคลากร"
-                   class="w-full rounded border-gray-300">
+        @forelse ($profiles as $profile)
+            @php
+                $gross = $profile->base_salary + $profile->position_allowance
+                    + $profile->professional_allowance + $profile->other_allowance;
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ค้นหา
-            </button>
+                $deduct = $profile->social_security + $profile->tax
+                    + $profile->provident_fund + $profile->other_deduction;
+            @endphp
 
-            <a href="{{ route('salary-profiles.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ล้าง
-            </a>
-        </form>
-    </div>
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $profile->employee?->employee_code }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $profile->employee?->full_name ?? '-' }}</div>
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">บุคลากร</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-right">เงินเดือน</th>
-                    <th class="border px-4 py-2 text-right">รายได้รวมตั้งต้น</th>
-                    <th class="border px-4 py-2 text-right">หักประจำ</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                <x-data-table.td>{{ $profile->employee?->department?->name ?? '-' }}</x-data-table.td>
 
-            <tbody>
-                @forelse ($profiles as $profile)
-                    @php
-                        $gross = $profile->base_salary
-                            + $profile->position_allowance
-                            + $profile->professional_allowance
-                            + $profile->other_allowance;
+                <x-data-table.td align="right" class="tabular-nums">{{ number_format($profile->base_salary, 2) }}</x-data-table.td>
+                <x-data-table.td align="right" class="tabular-nums font-medium text-emerald-700">{{ number_format($gross, 2) }}</x-data-table.td>
+                <x-data-table.td align="right" class="tabular-nums text-rose-700">{{ number_format($deduct, 2) }}</x-data-table.td>
 
-                        $deduct = $profile->social_security
-                            + $profile->tax
-                            + $profile->provident_fund
-                            + $profile->other_deduction;
-                    @endphp
+                <x-data-table.td align="center">
+                    <x-badge :tone="$profile->is_active ? 'success' : 'slate'" dot>
+                        {{ $profile->is_active ? 'ใช้งาน' : 'ปิดใช้งาน' }}
+                    </x-badge>
+                </x-data-table.td>
 
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $profile->employee?->employee_code }}
-                            <div class="text-xs text-gray-500">
-                                {{ $profile->employee?->full_name ?? '-' }}
-                            </div>
-                        </td>
+                <x-data-table.td align="center">
+                    <div class="flex justify-center gap-2">
+                        @can('payroll.update')
+                            <x-btn :href="route('salary-profiles.edit', $profile)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                        <td class="border px-4 py-2">
-                            {{ $profile->employee?->department?->name ?? '-' }}
-                        </td>
+                        @can('payroll.delete')
+                            <form method="POST"
+                                  action="{{ route('salary-profiles.destroy', $profile) }}"
+                                  onsubmit="return confirm('ยืนยันการลบข้อมูลเงินเดือนนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                        <td class="border px-4 py-2 text-right">
-                            {{ number_format($profile->base_salary, 2) }}
-                        </td>
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="7" icon="cog" title="ยังไม่มีข้อมูลเงินเดือน"
+                                description="ตั้งค่าเงินเดือนของบุคลากรก่อนจึงจะ Generate สลิปได้">
+                @can('payroll.create')
+                    <x-btn :href="route('salary-profiles.create')">เพิ่มข้อมูลเงินเดือน</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                        <td class="border px-4 py-2 text-right">
-                            {{ number_format($gross, 2) }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-right">
-                            {{ number_format($deduct, 2) }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            @if ($profile->is_active)
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    ใช้งาน
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                                    ปิดใช้งาน
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('payroll.update')
-                                    <a href="{{ route('salary-profiles.edit', $profile) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
-
-                                @can('payroll.delete')
-                                    <form method="POST"
-                                          action="{{ route('salary-profiles.destroy', $profile) }}"
-                                          onsubmit="return confirm('ยืนยันการลบข้อมูลเงินเดือนนี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ยังไม่มีข้อมูลเงินเดือน
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $profiles->links() }}
-    </div>
+    <div class="mt-4">{{ $profiles->links() }}</div>
 </x-layouts.app>
