@@ -8,7 +8,7 @@
         <x-btn :href="route('salary-profiles.index')" variant="secondary" icon="cog">ตั้งค่าเงินเดือน</x-btn>
 
         @can('payroll.create')
-            <x-btn :href="route('payroll-periods.create')" icon="cash">สร้างรอบเงินเดือน</x-btn>
+            <x-btn :href="route('payroll-periods.create')" icon="money">สร้างรอบเงินเดือน</x-btn>
         @endcan
     </x-page-header>
 
@@ -62,7 +62,7 @@
                 </x-data-table.td>
             </x-data-table.row>
         @empty
-            <x-data-table.empty :colspan="7" icon="cash" title="ยังไม่มีรอบเงินเดือน"
+            <x-data-table.empty :colspan="7" icon="money" title="ยังไม่มีรอบเงินเดือน"
                                 description="สร้างรอบเงินเดือนเพื่อเริ่ม Generate สลิป">
                 @can('payroll.create')
                     <x-btn :href="route('payroll-periods.create')">สร้างรอบเงินเดือน</x-btn>

@@ -4,7 +4,7 @@
             @csrf
             @method('PATCH')
 
-            <x-btn type="submit" variant="secondary" icon="check-circle">อ่านทั้งหมด</x-btn>
+            <x-btn type="submit" variant="secondary" icon="approvals">อ่านทั้งหมด</x-btn>
         </form>
     </x-page-header>
 

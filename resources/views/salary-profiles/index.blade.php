@@ -1,7 +1,7 @@
 <x-layouts.app title="ตั้งค่าเงินเดือน">
     <x-page-header title="ตั้งค่าเงินเดือน"
                    subtitle="ตั้งค่าเงินเดือน รายได้ รายการหัก และอัตราหักจากเวลาทำงาน">
-        <x-btn :href="route('payroll-periods.index')" variant="secondary" icon="cash">รอบเงินเดือน</x-btn>
+        <x-btn :href="route('payroll-periods.index')" variant="secondary" icon="money">รอบเงินเดือน</x-btn>
 
         @can('payroll.create')
             <x-btn :href="route('salary-profiles.create')" icon="cog">เพิ่มข้อมูลเงินเดือน</x-btn>

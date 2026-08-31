@@ -121,7 +121,7 @@
             </div>
         @empty
             <div class="card">
-                <x-empty-state icon="check-circle" title="ไม่พบรายการอนุมัติ"
+                <x-empty-state icon="approvals" title="ไม่พบรายการอนุมัติ"
                                description="รายการที่รออนุมัติจากทุกโมดูลจะมาแสดงที่นี่" />
             </div>
         @endforelse

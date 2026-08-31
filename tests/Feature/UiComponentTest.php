@@ -194,3 +194,25 @@ test('the filter bar posts to its action and offers a clear link', function () {
 
     expect(render('<x-filter-bar action="/x" :reset="false" />'))->not->toContain('ล้าง');
 });
+
+test('an unknown icon name falls back to a dot rather than an empty svg', function () {
+    // Views ask for icons by name; a typo should degrade to a neutral mark,
+    // not render a blank box or throw.
+    $svg = render('<x-icon name="no-such-icon" />');
+
+    expect($svg)->toContain('<svg')
+        ->and($svg)->toContain('<circle');
+});
+
+test('the icons the shell and pages ask for all exist', function (string $name) {
+    // A missing name silently renders the dot fallback, so compare against
+    // that exact output. Several real icons contain a <circle> of their own,
+    // so the element alone cannot tell us whether the fallback was used.
+    $fallback = render('<x-icon name="definitely-not-an-icon" />');
+
+    expect(render('<x-icon name="'.$name.'" />'))->not->toBe($fallback);
+})->with([
+    'dashboard', 'building', 'document', 'clipboard', 'calendar', 'money',
+    'cog', 'device', 'wrench', 'bell', 'search', 'approvals', 'shield',
+    'swap', 'box', 'external-link', 'upload', 'chevron-right',
+]);
