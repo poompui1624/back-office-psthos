@@ -49,11 +49,23 @@ test('a request with no token is rejected before it can be repeated freely', fun
 test('one machine cannot flood the endpoint', function () {
     $token = agentToken();
 
-    foreach (range(1, 6) as $ignored) {
-        postInventory($token)->assertOk();
+    // Each report carries a different list, so every accepted one is a real
+    // change and writes its own snapshot. Sending the same list six times
+    // would produce a single snapshot now that unchanged reports are
+    // recognised, which would say nothing about whether the limiter worked.
+    foreach (range(1, 6) as $i) {
+        postInventory($token, [
+            'installed_software' => [
+                ['name' => 'Package '.$i, 'version' => '1.0', 'publisher' => 'Vendor'],
+            ],
+        ])->assertOk();
     }
 
-    postInventory($token)->assertStatus(429);
+    postInventory($token, [
+        'installed_software' => [
+            ['name' => 'Package 7', 'version' => '1.0', 'publisher' => 'Vendor'],
+        ],
+    ])->assertStatus(429);
 
     // Six accepted reports, six snapshot rows — the seventh wrote nothing.
     expect(ComputerSnapshot::count())->toBe(6);

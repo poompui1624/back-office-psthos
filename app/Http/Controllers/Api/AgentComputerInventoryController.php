@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Computer;
 use App\Models\ComputerAgent;
+use App\Models\ComputerSoftware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -46,7 +47,7 @@ class AgentComputerInventoryController extends Controller
             $computer = $this->findComputer($validated);
 
             if (! $computer) {
-                $computer = new Computer();
+                $computer = new Computer;
             }
 
             $computer->fill([
@@ -73,21 +74,37 @@ class AgentComputerInventoryController extends Controller
 
             $computer->save();
 
-            $computer->snapshots()->create([
-                'hostname' => $validated['hostname'],
-                'ip_address' => $validated['ip_address'] ?? null,
+            $software = $validated['installed_software'] ?? [];
+            $fingerprint = ComputerSoftware::fingerprint($software);
 
-                'os_name' => $validated['os_name'] ?? null,
-                'os_version' => $validated['os_version'] ?? null,
+            // Agents report daily but software changes perhaps twice a month.
+            // Writing a snapshot each time stored the same 16 KB of JSON over
+            // and over, so an unchanged list only refreshes what was seen.
+            $unchanged = $computer->snapshots()
+                ->where('software_hash', $fingerprint)
+                ->latest('reported_at')
+                ->exists();
 
-                'cpu_name' => $validated['cpu_name'] ?? null,
-                'ram_gb' => $validated['ram_gb'] ?? null,
-                'storage_gb' => $validated['storage_gb'] ?? null,
+            if (! $unchanged) {
+                $computer->snapshots()->create([
+                    'hostname' => $validated['hostname'],
+                    'ip_address' => $validated['ip_address'] ?? null,
 
-                'installed_software' => $validated['installed_software'] ?? null,
-                'raw_payload' => $validated['raw_payload'] ?? $validated,
-                'reported_at' => now(),
-            ]);
+                    'os_name' => $validated['os_name'] ?? null,
+                    'os_version' => $validated['os_version'] ?? null,
+
+                    'cpu_name' => $validated['cpu_name'] ?? null,
+                    'ram_gb' => $validated['ram_gb'] ?? null,
+                    'storage_gb' => $validated['storage_gb'] ?? null,
+
+                    'installed_software' => $software,
+                    'software_hash' => $fingerprint,
+                    'raw_payload' => $validated['raw_payload'] ?? $validated,
+                    'reported_at' => now(),
+                ]);
+            }
+
+            $this->syncSoftware($computer, $software);
 
             return $computer;
         });
@@ -103,6 +120,78 @@ class AgentComputerInventoryController extends Controller
             'computer_id' => $computer->id,
             'hostname' => $computer->hostname,
         ]);
+    }
+
+    /**
+     * Mirror the reported list into computer_software.
+     *
+     * computer_snapshots holds the history as JSON, which cannot be queried;
+     * this table is what the inventory page reads, so it has to reflect what
+     * is on the machine right now — including packages that were uninstalled
+     * since the last report.
+     *
+     * @param  array<int, array<string, mixed>>  $installedSoftware
+     */
+    private function syncSoftware(Computer $computer, array $installedSoftware): void
+    {
+        $now = now();
+        $rows = [];
+
+        foreach ($installedSoftware as $item) {
+            $name = trim((string) ($item['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $version = trim((string) ($item['version'] ?? ''));
+            $normalized = ComputerSoftware::normalizeName($name);
+
+            // The unique key is (computer, normalized_name, version), so a
+            // machine reporting the same package twice would otherwise make
+            // upsert fail on a duplicate within its own batch.
+            $rows[$normalized.'|'.$version] = [
+                'computer_id' => $computer->id,
+                'name' => $name,
+                'normalized_name' => $normalized,
+                // Empty rather than null: the unique key includes this column,
+                // and NULL never equals NULL, so nulls would not deduplicate.
+                'version' => $version,
+                'publisher' => trim((string) ($item['publisher'] ?? '')) ?: null,
+                'is_component' => ComputerSoftware::looksLikeComponent($name),
+                'first_seen_at' => $now,
+                'last_seen_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        // Read what is on record before writing, so the rows to remove can be
+        // identified by primary key. Comparing last_seen_at instead would miss
+        // packages when two reports land in the same second, because the
+        // column stores no fractional seconds.
+        $existing = ComputerSoftware::query()
+            ->where('computer_id', $computer->id)
+            ->get(['id', 'normalized_name', 'version']);
+
+        if ($rows !== []) {
+            // first_seen_at is deliberately absent from the update list: a
+            // package already known keeps the date it was first reported.
+            ComputerSoftware::upsert(
+                array_values($rows),
+                ['computer_id', 'normalized_name', 'version'],
+                ['name', 'publisher', 'is_component', 'last_seen_at', 'updated_at']
+            );
+        }
+
+        // Anything on record but absent from this report has been uninstalled.
+        $removed = $existing
+            ->reject(fn ($row) => isset($rows[$row->normalized_name.'|'.((string) $row->version)]))
+            ->pluck('id');
+
+        if ($removed->isNotEmpty()) {
+            ComputerSoftware::whereKey($removed)->delete();
+        }
     }
 
     private function authenticateAgent(Request $request): ?ComputerAgent

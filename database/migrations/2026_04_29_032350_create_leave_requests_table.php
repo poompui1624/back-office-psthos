@@ -22,9 +22,11 @@ return new class extends Migration
                 ->constrained('departments')
                 ->nullOnDelete();
 
-            $table->foreignId('leave_type_id')
-                ->constrained('leave_types')
-                ->cascadeOnDelete();
+            // The constraint is added by a later migration: leave_types is
+            // created after this table, so declaring it here fails on a fresh
+            // database. MySQL enforces that ordering; SQLite does not, which is
+            // why the test suite never showed it.
+            $table->foreignId('leave_type_id');
 
             $table->date('start_date');
             $table->date('end_date');

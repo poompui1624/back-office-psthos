@@ -3,94 +3,71 @@
 namespace App\Http\Controllers;
 
 use App\Models\Computer;
+use App\Models\ComputerSoftware;
+use App\Models\Department;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * The software inventory, read from computer_software.
+ *
+ * This used to load every machine's snapshot JSON and group it in PHP on each
+ * request, which at three hundred machines meant decoding several megabytes to
+ * render thirty rows. The agent now writes a queryable row per package, so the
+ * work here is a grouped query the database can index.
+ */
 class SoftwareInventoryController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Machines quieter than this are treated as gone and left out of the counts.
+     */
+    private const ACTIVE_WITHIN_DAYS = 30;
+
+    public function index(Request $request): View
     {
         abort_unless(auth()->user()->can('software.view'), 403);
 
         $search = trim($request->string('search')->toString());
+        $departmentId = $request->string('department_id')->toString();
+        $publisher = trim($request->string('publisher')->toString());
+        $includeComponents = $request->boolean('include_components');
 
-        $computers = Computer::query()
-            ->with(['latestSnapshot'])
-            ->whereHas('latestSnapshot')
-            ->orderBy('hostname')
-            ->get();
+        $hasQuery = $search !== '' || $departmentId !== '' || $publisher !== '';
 
-        $softwareItems = collect();
+        return view('software-inventory.index', [
+            'search' => $search,
+            'departmentId' => $departmentId,
+            'publisher' => $publisher,
+            'includeComponents' => $includeComponents,
+            'hasQuery' => $hasQuery,
 
-        foreach ($computers as $computer) {
-            $snapshot = $computer->latestSnapshot;
+            'departments' => Department::query()
+                ->where('is_active', true)
+                ->orderBy('code')
+                ->get(),
 
-            if (! $snapshot || ! is_array($snapshot->installed_software)) {
-                continue;
-            }
+            'publishers' => $this->publishers($includeComponents),
+            'summary' => $this->summary($includeComponents),
 
-            foreach ($snapshot->installed_software as $software) {
-                $name = trim($software['name'] ?? '');
+            // The page is built for looking something up rather than browsing,
+            // so the full list is not rendered until a filter is set.
+            'products' => $hasQuery
+                ? $this->products($search, $departmentId, $publisher, $includeComponents)
+                : null,
 
-                if ($name === '') {
-                    continue;
-                }
-
-                $version = trim($software['version'] ?? '');
-                $publisher = trim($software['publisher'] ?? '');
-
-                if ($search !== '') {
-                    $haystack = mb_strtolower($name . ' ' . $version . ' ' . $publisher);
-
-                    if (! str_contains($haystack, mb_strtolower($search))) {
-                        continue;
-                    }
-                }
-
-                $key = mb_strtolower($name) . '|' . mb_strtolower($version) . '|' . mb_strtolower($publisher);
-
-                if (! $softwareItems->has($key)) {
-                    $softwareItems->put($key, [
-                        'name' => $name,
-                        'version' => $version,
-                        'publisher' => $publisher,
-                        'computer_count' => 0,
-                        'computers' => [],
-                    ]);
-                }
-
-                $item = $softwareItems->get($key);
-
-                $item['computer_count']++;
-                $item['computers'][] = [
-                    'id' => $computer->id,
-                    'hostname' => $computer->hostname,
-                    'ip_address' => $computer->ip_address,
-                ];
-
-                $softwareItems->put($key, $item);
-            }
-        }
-
-        $softwareItems = $softwareItems
-            ->values()
-            ->sortBy([
-                ['name', 'asc'],
-                ['version', 'asc'],
-            ])
-            ->values();
-
-        $softwareItems = $this->paginateCollection(
-            collection: $softwareItems,
-            perPage: 30,
-            request: $request
-        );
-
-        return view('software-inventory.index', compact('softwareItems', 'search'));
+            'topProducts' => $hasQuery
+                ? collect()
+                : $this->products('', '', '', $includeComponents, 10),
+        ]);
     }
 
-    public function computers(Request $request)
+    /**
+     * The machines carrying one package, optionally pinned to a single version.
+     */
+    public function computers(Request $request): View
     {
         abort_unless(auth()->user()->can('software.view'), 403);
 
@@ -101,62 +78,126 @@ class SoftwareInventoryController extends Controller
         abort_if($name === '', 404);
 
         $computers = Computer::query()
-            ->with(['latestSnapshot', 'department', 'responsibleEmployee'])
-            ->whereHas('latestSnapshot')
-            ->orderBy('hostname')
-            ->get()
-            ->filter(function ($computer) use ($name, $version, $publisher) {
-                $snapshot = $computer->latestSnapshot;
+            ->with(['department', 'responsibleEmployee'])
+            ->whereHas('software', function ($query) use ($name, $version, $publisher) {
+                $query->where('normalized_name', ComputerSoftware::normalizeName($name));
 
-                if (! $snapshot || ! is_array($snapshot->installed_software)) {
-                    return false;
+                if ($version !== '') {
+                    $query->where('version', $version);
                 }
 
-                foreach ($snapshot->installed_software as $software) {
-                    $softwareName = trim($software['name'] ?? '');
-                    $softwareVersion = trim($software['version'] ?? '');
-                    $softwarePublisher = trim($software['publisher'] ?? '');
-
-                    if ($softwareName !== $name) {
-                        continue;
-                    }
-
-                    if ($version !== '' && $softwareVersion !== $version) {
-                        continue;
-                    }
-
-                    if ($publisher !== '' && $softwarePublisher !== $publisher) {
-                        continue;
-                    }
-
-                    return true;
+                if ($publisher !== '') {
+                    $query->where('publisher', $publisher);
                 }
-
-                return false;
             })
-            ->values();
+            ->orderBy('hostname')
+            ->paginate(50)
+            ->withQueryString();
 
-        return view('software-inventory.computers', compact(
-            'computers',
-            'name',
-            'version',
-            'publisher'
-        ));
+        return view('software-inventory.computers', compact('computers', 'name', 'version', 'publisher'));
     }
 
-    private function paginateCollection(Collection $collection, int $perPage, Request $request): LengthAwarePaginator
-    {
-        $page = LengthAwarePaginator::resolveCurrentPage();
+    /**
+     * One row per product, with how many versions and machines carry it.
+     */
+    private function products(
+        string $search,
+        string $departmentId,
+        string $publisher,
+        bool $includeComponents,
+        ?int $limit = null
+    ) {
+        $query = ComputerSoftware::query()
+            ->excludingComponents($includeComponents)
+            ->onActiveComputers(self::ACTIVE_WITHIN_DAYS)
+            ->select([
+                DB::raw('MIN(computer_software.name) as name'),
+                'computer_software.normalized_name',
+                DB::raw('COUNT(DISTINCT computer_software.version) as version_count'),
+                DB::raw('COUNT(DISTINCT computer_software.computer_id) as computer_count'),
+                DB::raw('MIN(computer_software.publisher) as publisher'),
+                DB::raw('MAX(computer_software.last_seen_at) as last_seen_at'),
+            ])
+            ->groupBy('computer_software.normalized_name')
+            ->orderByDesc('computer_count')
+            ->orderBy('name');
 
-        return new LengthAwarePaginator(
-            items: $collection->forPage($page, $perPage),
-            total: $collection->count(),
-            perPage: $perPage,
-            currentPage: $page,
-            options: [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        );
+        if ($search !== '') {
+            $query->where('computer_software.normalized_name', 'like', '%'.ComputerSoftware::normalizeName($search).'%');
+        }
+
+        if ($publisher !== '') {
+            $query->where('computer_software.publisher', $publisher);
+        }
+
+        if ($departmentId !== '') {
+            $query->whereHas('computer', fn ($computer) => $computer->where('department_id', $departmentId));
+        }
+
+        if ($limit !== null) {
+            return $query->limit($limit)->get();
+        }
+
+        return $query->paginate(30)->withQueryString();
+    }
+
+    /**
+     * The versions of one product and how many machines run each.
+     *
+     * @return Collection<int, object>
+     */
+    public function versionsFor(string $normalizedName, bool $includeComponents = false)
+    {
+        return ComputerSoftware::query()
+            ->excludingComponents($includeComponents)
+            ->onActiveComputers(self::ACTIVE_WITHIN_DAYS)
+            ->where('normalized_name', $normalizedName)
+            ->select([
+                'version',
+                DB::raw('COUNT(DISTINCT computer_id) as computer_count'),
+            ])
+            ->groupBy('version')
+            ->orderByDesc('computer_count')
+            ->get();
+    }
+
+    /**
+     * @return array{products: int, installs: int, computers: int, last_report: Carbon|null}
+     */
+    private function summary(bool $includeComponents): array
+    {
+        $base = ComputerSoftware::query()
+            ->excludingComponents($includeComponents)
+            ->onActiveComputers(self::ACTIVE_WITHIN_DAYS);
+
+        $totals = (clone $base)
+            ->selectRaw('COUNT(DISTINCT normalized_name) as products')
+            ->selectRaw('COUNT(*) as installs')
+            ->selectRaw('COUNT(DISTINCT computer_id) as computers')
+            ->first();
+
+        return [
+            'products' => (int) ($totals->products ?? 0),
+            'installs' => (int) ($totals->installs ?? 0),
+            'computers' => (int) ($totals->computers ?? 0),
+            'last_report' => Computer::max('last_seen_at')
+                ? Carbon::parse(Computer::max('last_seen_at'))
+                : null,
+        ];
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function publishers(bool $includeComponents)
+    {
+        return ComputerSoftware::query()
+            ->excludingComponents($includeComponents)
+            ->onActiveComputers(self::ACTIVE_WITHIN_DAYS)
+            ->whereNotNull('publisher')
+            ->where('publisher', '!=', '')
+            ->distinct()
+            ->orderBy('publisher')
+            ->pluck('publisher');
     }
 }

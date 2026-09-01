@@ -17,6 +17,7 @@ class ComputerSnapshot extends Model
         'ram_gb',
         'storage_gb',
         'installed_software',
+        'software_hash',
         'raw_payload',
         'reported_at',
     ];

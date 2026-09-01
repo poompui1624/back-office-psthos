@@ -11,9 +11,10 @@ return new class extends Migration
         Schema::create('duty_schedule_actions', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('duty_schedule_id')
-                ->constrained('duty_schedules')
-                ->cascadeOnDelete();
+            // The constraint is added by a later migration: duty_schedules is
+            // created after this table, so declaring it here fails on a fresh
+            // database.
+            $table->foreignId('duty_schedule_id');
 
             $table->foreignId('user_id')
                 ->nullable()

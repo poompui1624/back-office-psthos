@@ -65,6 +65,11 @@ class Computer extends Model
         return $this->hasOne(ComputerSnapshot::class)->latestOfMany();
     }
 
+    public function software(): HasMany
+    {
+        return $this->hasMany(ComputerSoftware::class);
+    }
+
     public function repairRequests(): MorphMany
     {
         return $this->morphMany(RepairRequest::class, 'repairable');
