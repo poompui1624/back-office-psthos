@@ -23,3 +23,6 @@ hasRole('super_admin')
 /.nova
 /.vscode
 /.zed
+
+# The agent's config holds a bearer token in clear text.
+agent/**/config.json
