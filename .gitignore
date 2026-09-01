@@ -24,5 +24,8 @@ hasRole('super_admin')
 /.vscode
 /.zed
 
-# The agent's config holds a bearer token in clear text.
-agent/**/config.json
+# The agent's config holds a bearer token in clear text. The pattern is wide
+# on purpose: a "config.example copy.json" left beside it once carried a live
+# token and was not matched by a narrower rule.
+agent/**/config*.json
+!agent/config.example.json
