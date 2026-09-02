@@ -71,6 +71,34 @@ class ComputerSoftware extends Model
     }
 
     /**
+     * Coerce a reported software payload into a list of entries.
+     *
+     * The API validates installed_software as an array, which also accepts a
+     * single JSON object — and real data on record does exactly that, storing
+     * one package as {"name": ...} rather than [{"name": ...}]. Iterating that
+     * walks the keys instead of the entries and reads nothing.
+     *
+     * @param  mixed  $installedSoftware
+     * @return array<int, array<string, mixed>>
+     */
+    public static function asEntryList($installedSoftware): array
+    {
+        if (! is_array($installedSoftware) || $installedSoftware === []) {
+            return [];
+        }
+
+        // A single entry: an associative array carrying the fields directly.
+        if (array_key_exists('name', $installedSoftware)) {
+            return [$installedSoftware];
+        }
+
+        return array_values(array_filter(
+            $installedSoftware,
+            fn ($entry) => is_array($entry) && isset($entry['name'])
+        ));
+    }
+
+    /**
      * A stable fingerprint of one machine's software list.
      *
      * Sorted before hashing so a reordered list — which the agent makes no
@@ -82,7 +110,7 @@ class ComputerSoftware extends Model
     {
         $lines = [];
 
-        foreach ($installedSoftware as $item) {
+        foreach (self::asEntryList($installedSoftware) as $item) {
             $name = trim((string) ($item['name'] ?? ''));
 
             if ($name === '') {

@@ -137,7 +137,7 @@ class AgentComputerInventoryController extends Controller
         $now = now();
         $rows = [];
 
-        foreach ($installedSoftware as $item) {
+        foreach (ComputerSoftware::asEntryList($installedSoftware) as $item) {
             $name = trim((string) ($item['name'] ?? ''));
 
             if ($name === '') {

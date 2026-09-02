@@ -363,3 +363,31 @@ test('a versionless package is still removed once it is uninstalled', function (
     expect(ComputerSoftware::count())->toBe(1)
         ->and(ComputerSoftware::first()->normalized_name)->toBe('google chrome');
 });
+
+test('a payload carrying one package as an object rather than a list is read', function () {
+    $token = inventoryAgentToken();
+
+    // The API validates installed_software as an array, which also accepts a
+    // single JSON object, and snapshots on record genuinely store it that way.
+    // Iterating that walks the keys instead of the entry.
+    $this->postJson(route('api.agent.computer-inventory'), [
+        'hostname' => 'PC-001',
+        'machine_uuid' => 'uuid-1',
+        'installed_software' => ['name' => 'Google Chrome', 'version' => '120.0', 'publisher' => 'Google LLC'],
+    ], ['Authorization' => 'Bearer '.$token])->assertOk();
+
+    expect(ComputerSoftware::count())->toBe(1)
+        ->and(ComputerSoftware::first()->name)->toBe('Google Chrome');
+});
+
+test('entries without a name are ignored rather than stored blank', function () {
+    $token = inventoryAgentToken();
+
+    reportInventory($token, 'PC-001', [
+        ['name' => 'Google Chrome', 'version' => '120.0'],
+        ['version' => '1.0', 'publisher' => 'Nobody'],
+        'not an entry at all',
+    ])->assertOk();
+
+    expect(ComputerSoftware::count())->toBe(1);
+});

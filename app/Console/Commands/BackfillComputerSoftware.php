@@ -27,7 +27,7 @@ class BackfillComputerSoftware extends Command
             ComputerSoftware::query()->delete();
         }
 
-        $computers = Computer::query()->with('latestSnapshot')->get();
+        $computers = Computer::query()->get();
 
         if ($computers->isEmpty()) {
             $this->info('No computers on record.');
@@ -42,9 +42,15 @@ class BackfillComputerSoftware extends Command
         $bar->start();
 
         foreach ($computers as $computer) {
-            $snapshot = $computer->latestSnapshot;
+            // The most recent snapshot that actually carries a list, rather
+            // than simply the most recent: a machine whose last report had no
+            // software still has a last known good one worth filling from.
+            $snapshot = $computer->snapshots()
+                ->whereNotNull('installed_software')
+                ->latest('reported_at')
+                ->first();
 
-            if (! $snapshot || ! is_array($snapshot->installed_software) || $snapshot->installed_software === []) {
+            if (! $snapshot || ComputerSoftware::asEntryList($snapshot->installed_software) === []) {
                 $skipped++;
                 $bar->advance();
 
@@ -84,7 +90,7 @@ class BackfillComputerSoftware extends Command
         $seenAt = $reportedAt ?? now();
         $rows = [];
 
-        foreach ($installedSoftware as $item) {
+        foreach (ComputerSoftware::asEntryList($installedSoftware) as $item) {
             $name = trim((string) ($item['name'] ?? ''));
 
             if ($name === '') {
