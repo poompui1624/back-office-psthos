@@ -54,17 +54,19 @@ test('a heading is not struck through on the public page', function () {
     expect($surrounding)->not->toContain('line-through');
 });
 
-test('a normal item with no document is still struck through', function () {
-    $item = makeHeadingSubTopic(['code' => '3.1', 'title' => 'มีบันทึกข้อความรายงานผล', 'is_heading' => false]);
+test('a normal item with no document is marked as not yet published', function () {
+    makeHeadingSubTopic(['code' => '3.1', 'title' => 'มีบันทึกข้อความรายงานผล', 'is_heading' => false]);
 
-    $html = $this->get(route('ita.public.index', 2569))->assertOk()->getContent();
+    $response = $this->get(route('ita.public.index', 2569))->assertOk();
 
-    $position = strpos($html, $item->title);
-    $surrounding = substr($html, max(0, $position - 300), 400);
-
-    expect($surrounding)->toContain('line-through');
+    // This used to be struck through. On a public record a line through the
+    // text reads as withdrawn rather than pending, so the state is now said in
+    // words. The fixture holds a single item, so asserting against the whole
+    // page is unambiguous — and does not depend on slicing raw HTML, where a
+    // byte-counted window lands mid-tag once the text is Thai.
+    $response->assertSeeText('ยังไม่เผยแพร่')
+        ->assertDontSee('line-through');
 });
-
 test('the flag can be set when creating an item', function () {
     $existing = makeHeadingSubTopic();
 
