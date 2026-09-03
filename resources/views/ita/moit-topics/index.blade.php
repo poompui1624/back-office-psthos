@@ -1,8 +1,8 @@
 <x-layouts.app title="จัดการหัวข้อหลัก MOIT">
+    @include('ita._nav')
+
     <x-page-header title="จัดการหัวข้อหลัก MOIT"
                    subtitle="เพิ่ม แก้ไข ปิดใช้งาน หรือจัดเรียงหัวข้อหลักตามปีงบประมาณ">
-        <x-btn :href="route('ita.documents.index')" variant="secondary" icon="document">กลับไฟล์ ITA</x-btn>
-        <x-btn :href="route('ita.moit-sub-topics.index')" variant="secondary">หัวข้อย่อย</x-btn>
         <x-btn :href="route('ita.moit-topics.create')" icon="clipboard">เพิ่มหัวข้อหลัก</x-btn>
     </x-page-header>
 

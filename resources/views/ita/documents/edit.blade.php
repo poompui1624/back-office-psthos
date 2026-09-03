@@ -1,5 +1,7 @@
 <x-layouts.app title="แก้ไขไฟล์ ITA">
     <div class="mx-auto w-full max-w-4xl">
+        @include('ita._nav')
+
         <x-page-header title="แก้ไขไฟล์ ITA"
                        subtitle="แก้ไขรายละเอียดไฟล์ หัวข้อ หรืออัปโหลดไฟล์ใหม่แทนไฟล์เดิม" />
 

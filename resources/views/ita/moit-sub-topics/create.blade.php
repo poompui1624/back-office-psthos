@@ -1,5 +1,7 @@
 <x-layouts.app title="เพิ่มหัวข้อย่อย MOIT">
     <div class="mx-auto w-full max-w-4xl">
+        @include('ita._nav')
+
         <x-page-header title="เพิ่มหัวข้อย่อย MOIT" />
 
         <div class="card card-pad">

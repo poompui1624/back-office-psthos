@@ -1,7 +1,8 @@
 <x-layouts.app title="จัดการหัวข้อย่อย MOIT">
+    @include('ita._nav')
+
     <x-page-header title="จัดการหัวข้อย่อย MOIT"
                    subtitle="เพิ่ม แก้ไข ปิดใช้งาน หรือจัดเรียงหัวข้อย่อยของแต่ละ MOIT">
-        <x-btn :href="route('ita.moit-topics.index')" variant="secondary">หัวข้อหลัก</x-btn>
         <x-btn :href="route('ita.moit-sub-topics.create')" icon="clipboard">เพิ่มหัวข้อย่อย</x-btn>
     </x-page-header>
 

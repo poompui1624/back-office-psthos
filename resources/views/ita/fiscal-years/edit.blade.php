@@ -1,5 +1,7 @@
 <x-layouts.app title="แก้ไขปีงบประมาณ ITA">
     <div class="mx-auto w-full max-w-3xl">
+        @include('ita._nav')
+
         <x-page-header title="แก้ไขปีงบประมาณ ITA"
                        subtitle="แก้ไขชื่อหรือสถานะเปิดใช้งานของปีงบประมาณ" />
 

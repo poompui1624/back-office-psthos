@@ -1,5 +1,7 @@
 <x-layouts.app title="เพิ่มปีงบประมาณ ITA">
     <div class="mx-auto w-full max-w-3xl">
+        @include('ita._nav')
+
         <x-page-header title="เพิ่มปีงบประมาณ ITA"
                        subtitle="ใช้สำหรับแยกชุดหัวข้อ MOIT และเอกสารตามปีงบประมาณ" />
 

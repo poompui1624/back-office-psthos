@@ -1,5 +1,7 @@
 <x-layouts.app title="อัปโหลดไฟล์ ITA">
     <div class="mx-auto w-full max-w-4xl">
+        @include('ita._nav')
+
         <x-page-header title="อัปโหลดไฟล์ ITA"
                        subtitle="เลือกปีงบประมาณ หัวข้อหลัก MOIT หัวข้อย่อย และแนบไฟล์เอกสาร" />
 

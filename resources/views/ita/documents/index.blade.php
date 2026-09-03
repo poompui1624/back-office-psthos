@@ -1,16 +1,8 @@
 <x-layouts.app title="ไฟล์ ITA">
+    @include('ita._nav')
+
     <x-page-header title="ระบบรับไฟล์ ITA"
                    subtitle="แสดงไฟล์ที่อัปโหลดแล้ว เปิดดู แก้ไข ลบ และคัดลอกลิงก์ไฟล์">
-        <x-btn :href="route('ita.public.index')" target="_blank" variant="secondary" icon="external-link">
-            หน้าแสดงผล
-        </x-btn>
-
-        @can('ita.topic.manage')
-            <x-btn :href="route('ita.fiscal-years.index')" variant="secondary">ปีงบประมาณ</x-btn>
-            <x-btn :href="route('ita.moit-topics.index')" variant="secondary">หัวข้อหลัก</x-btn>
-            <x-btn :href="route('ita.moit-sub-topics.index')" variant="secondary">หัวข้อย่อย</x-btn>
-        @endcan
-
         @can('ita.create')
             <x-btn :href="route('ita.documents.create')" icon="upload">อัปโหลดไฟล์</x-btn>
         @endcan

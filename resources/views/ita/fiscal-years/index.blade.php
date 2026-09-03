@@ -1,9 +1,8 @@
 <x-layouts.app title="จัดการปีงบประมาณ ITA">
+    @include('ita._nav')
+
     <x-page-header title="จัดการปีงบประมาณ ITA"
                    subtitle="เพิ่ม แก้ไข เปิด/ปิด ปีงบประมาณ สำหรับระบบ ITA / MOIT">
-        <x-btn :href="route('ita.documents.index')" variant="secondary" icon="document">กลับไฟล์ ITA</x-btn>
-        <x-btn :href="route('ita.moit-topics.index')" variant="secondary">หัวข้อหลัก</x-btn>
-        <x-btn :href="route('ita.moit-sub-topics.index')" variant="secondary">หัวข้อย่อย</x-btn>
         <x-btn :href="route('ita.fiscal-years.create')" icon="calendar">เพิ่มปีงบประมาณ</x-btn>
     </x-page-header>
 
