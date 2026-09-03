@@ -85,6 +85,7 @@ class ItaMoitSubTopicController extends Controller
             'title' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_heading' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -93,6 +94,7 @@ class ItaMoitSubTopicController extends Controller
             'main_topic_id' => $validated['main_topic_id'],
             'code' => $validated['code'],
             'title' => $validated['title'],
+            'is_heading' => $request->boolean('is_heading'),
             'description' => $validated['description'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
             'is_active' => $request->boolean('is_active'),
@@ -142,6 +144,7 @@ class ItaMoitSubTopicController extends Controller
             'title' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_heading' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -150,6 +153,7 @@ class ItaMoitSubTopicController extends Controller
             'main_topic_id' => $validated['main_topic_id'],
             'code' => $validated['code'],
             'title' => $validated['title'],
+            'is_heading' => $request->boolean('is_heading'),
             'description' => $validated['description'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
             'is_active' => $request->boolean('is_active'),

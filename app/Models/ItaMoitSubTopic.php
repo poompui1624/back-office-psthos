@@ -16,6 +16,7 @@ class ItaMoitSubTopic extends Model
         'main_topic_id',
         'code',
         'title',
+        'is_heading',
         'description',
         'sort_order',
         'is_active',
@@ -23,6 +24,7 @@ class ItaMoitSubTopic extends Model
 
     protected $casts = [
         'sort_order' => 'integer',
+        'is_heading' => 'boolean',
         'is_active' => 'boolean',
     ];
 

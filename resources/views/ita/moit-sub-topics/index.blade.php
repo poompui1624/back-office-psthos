@@ -55,7 +55,13 @@
                     <div class="mt-0.5 max-w-xs truncate text-xs text-slate-500">{{ $subTopic->mainTopic?->title }}</div>
                 </x-data-table.td>
 
-                <x-data-table.td class="font-semibold text-slate-900">{{ $subTopic->code }}</x-data-table.td>
+                <x-data-table.td class="font-semibold text-slate-900">
+                    {{ $subTopic->code }}
+
+                    @if ($subTopic->is_heading)
+                        <div class="mt-1"><x-badge tone="brand">หัวข้อกลุ่ม</x-badge></div>
+                    @endif
+                </x-data-table.td>
 
                 <x-data-table.td>
                     <div class="max-w-xl">{{ $subTopic->title }}</div>

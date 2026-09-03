@@ -47,6 +47,8 @@ class ItaMoitStructureSeeder extends Seeder
 
                 $keptTopicIds[] = $topicModel->id;
 
+                $codes = array_column($topic['items'], 0);
+
                 foreach ($topic['items'] as [$code, $title]) {
                     $subTopic = ItaMoitSubTopic::updateOrCreate(
                         [
@@ -56,6 +58,7 @@ class ItaMoitStructureSeeder extends Seeder
                         ],
                         [
                             'title' => $title,
+                            'is_heading' => self::isHeading($code, $codes),
                             'sort_order' => self::sortOrderFor($code),
                             'is_active' => true,
                         ]
@@ -82,6 +85,25 @@ class ItaMoitStructureSeeder extends Seeder
             ItaMoitTopic::where('fiscal_year_id', $fiscalYear->id)->count(),
             ItaMoitSubTopic::where('fiscal_year_id', $fiscalYear->id)->count()
         ));
+    }
+
+    /**
+     * Whether an item introduces the items beneath it rather than expecting a file.
+     *
+     * MOIT4's "ข้อ 3." exists to head 3.1 to 3.3 and will never carry a document
+     * of its own, so the public page must not show it as missing one.
+     *
+     * @param  array<int, string>  $allCodes
+     */
+    public static function isHeading(string $code, array $allCodes): bool
+    {
+        foreach ($allCodes as $other) {
+            if (str_starts_with($other, $code.'.')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

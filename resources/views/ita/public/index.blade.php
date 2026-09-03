@@ -89,8 +89,14 @@
                                                 $firstDocument = $subTopic->documents->first();
                                             @endphp
 
-                                            <div class="pl-4">
-                                                @if ($firstDocument)
+                                            <div class="{{ $subTopic->is_heading ? 'pt-2' : 'pl-4' }}">
+                                                @if ($subTopic->is_heading)
+                                                    {{-- Introduces the items beneath it and never carries a file
+                                                         of its own, so it is not marked as missing. --}}
+                                                    <div class="font-semibold text-gray-700">
+                                                        {{ $subTopic->code }} {{ $subTopic->title }}
+                                                    </div>
+                                                @elseif ($firstDocument)
                                                     <a href="{{ $firstDocument->file_url }}"
                                                        target="_blank"
                                                        class="font-medium text-emerald-600 hover:text-emerald-700 hover:underline">

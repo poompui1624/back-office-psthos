@@ -45,7 +45,17 @@
     <x-form.textarea name="description" rows="3" :value="old('description', $subTopic?->description)" />
 </x-form.field>
 
-<x-form.checkbox name="is_active" label="เปิดใช้งาน" :checked="old('is_active', $subTopic?->is_active ?? true)" />
+<div class="space-y-3">
+    <x-form.checkbox name="is_heading" label="เป็นหัวข้อกลุ่ม (ไม่ต้องแนบไฟล์)"
+                     :checked="old('is_heading', $subTopic?->is_heading ?? false)" />
+
+    <p class="-mt-1 pl-6 text-xs text-slate-500">
+        ใช้กับข้อที่เป็นหัวเรื่องของข้อย่อย เช่น &ldquo;ข้อ 3.&rdquo; ที่มี 3.1&ndash;3.3 อยู่ข้างใต้
+        หน้าเผยแพร่จะไม่ขีดฆ่าและไม่นับว่าขาดเอกสาร
+    </p>
+
+    <x-form.checkbox name="is_active" label="เปิดใช้งาน" :checked="old('is_active', $subTopic?->is_active ?? true)" />
+</div>
 
 <script>
     const fiscalYearSelect = document.getElementById('fiscal_year_id');

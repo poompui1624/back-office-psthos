@@ -104,3 +104,35 @@ test('documents filed under a removed topic are kept and moved, not deleted', fu
         ->and($document->main_topic_id)->not->toBe($oldTopic->id)
         ->and(ItaMoitTopic::whereKey($document->main_topic_id)->value('code'))->toBe('MOIT1');
 });
+
+test('an item with children is marked as a heading', function () {
+    $this->seed(ItaMoitStructureSeeder::class);
+
+    $moit4 = ItaMoitTopic::where('code', 'MOIT4')->firstOrFail();
+
+    $headings = ItaMoitSubTopic::where('main_topic_id', $moit4->id)
+        ->where('is_heading', true)
+        ->orderBy('sort_order')
+        ->pluck('code')
+        ->all();
+
+    // 1, 2 and 3 each introduce the items beneath them.
+    expect($headings)->toBe(['1', '2', '3'])
+        ->and(ItaMoitSubTopic::where('main_topic_id', $moit4->id)->where('code', '3.1')->value('is_heading'))
+        ->toBeFalse();
+});
+
+test('the heading rule looks at the whole code, not a text prefix', function () {
+    // "1" heads "1.1" but must not be treated as heading "10" or "18.4".
+    expect(ItaMoitStructureSeeder::isHeading('1', ['1', '1.1', '10', '18.4']))->toBeTrue()
+        ->and(ItaMoitStructureSeeder::isHeading('10', ['1', '1.1', '10', '18.4']))->toBeFalse()
+        ->and(ItaMoitStructureSeeder::isHeading('18', ['18', '18.4']))->toBeTrue()
+        ->and(ItaMoitStructureSeeder::isHeading('3.3', ['3.1', '3.2', '3.3']))->toBeFalse();
+});
+
+test('the whole structure has the expected number of headings', function () {
+    $this->seed(ItaMoitStructureSeeder::class);
+
+    expect(ItaMoitSubTopic::where('is_heading', true)->count())->toBe(43)
+        ->and(ItaMoitSubTopic::where('is_heading', false)->count())->toBe(191);
+});
