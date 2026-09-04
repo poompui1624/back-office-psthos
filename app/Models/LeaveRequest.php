@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LeaveRequest extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'request_no',
@@ -86,5 +88,10 @@ class LeaveRequest extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'leave';
     }
 }

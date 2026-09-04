@@ -19,8 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: Testing
     strategy:
+      # Without this, the first version to fail cancels the others, which
+      # reports as three failures when only one version is actually broken.
+      fail-fast: false
       matrix:
-        php-version: ['8.3', '8.4', '8.5']
+        # 8.5 is not testable yet: maatwebsite/excel ^3.1 pins
+        # phpoffice/phpspreadsheet ^1.30.0, which declares php <8.5.0, so
+        # composer install cannot resolve. Add it back once that dependency
+        # is bumped to a release supporting 8.5.
+        php-version: ['8.3', '8.4']
 
     steps:
       - name: Checkout code

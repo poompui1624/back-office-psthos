@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SalaryProfile extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -23,6 +24,7 @@ class SalaryProfile extends Model
         'late_deduction_per_minute',
         'early_leave_deduction_per_minute',
         'absent_deduction_per_day',
+        'ot_rate_per_hour',
         'is_active',
         'remark',
     ];

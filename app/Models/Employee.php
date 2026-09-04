@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'employee_code',
@@ -37,7 +39,7 @@ class Employee extends Model
 
     public function getFullNameAttribute(): string
     {
-        return trim(($this->prefix ? $this->prefix . ' ' : '') . $this->first_name . ' ' . $this->last_name);
+        return trim(($this->prefix ? $this->prefix.' ' : '').$this->first_name.' '.$this->last_name);
     }
 
     public function department(): BelongsTo
@@ -53,6 +55,11 @@ class Employee extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class);
+    }
+
+    public function personnelProfile(): HasOne
+    {
+        return $this->hasOne(EmployeePersonnelProfile::class);
     }
 
     public function attachments(): MorphMany
@@ -83,5 +90,10 @@ class Employee extends Model
     public function payslips(): HasMany
     {
         return $this->hasMany(Payslip::class);
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'employee';
     }
 }

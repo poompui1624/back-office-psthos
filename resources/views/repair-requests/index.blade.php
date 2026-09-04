@@ -1,178 +1,119 @@
 <x-layouts.app title="ระบบแจ้งซ่อม">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ระบบแจ้งซ่อม</h1>
-            <p class="text-sm text-gray-600">ติดตามรายการแจ้งซ่อมทั้งหมด</p>
-        </div>
+    @php
+        $repairStatuses = ['new' => 'ใหม่', 'in_progress' => 'กำลังดำเนินการ', 'completed' => 'เสร็จแล้ว', 'cancelled' => 'ยกเลิก'];
+        $repairTones = ['new' => 'info', 'in_progress' => 'warning', 'completed' => 'success', 'cancelled' => 'slate'];
 
-        <a href="{{ route('repair-requests.kanban') }}"
-        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-            Kanban Board
-        </a>
+        $priorities = ['urgent' => 'ด่วนมาก', 'high' => 'สูง', 'normal' => 'ปกติ', 'low' => 'ต่ำ'];
+        $priorityTones = ['urgent' => 'danger', 'high' => 'warning', 'normal' => 'info', 'low' => 'slate'];
+    @endphp
+
+    <x-page-header title="ระบบแจ้งซ่อม" subtitle="ติดตามรายการแจ้งซ่อมทั้งหมด">
+        <x-btn :href="route('repair-requests.kanban')" variant="secondary" icon="clipboard">Kanban</x-btn>
 
         @can('repair.create')
-            <a href="{{ route('repair-requests.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                แจ้งซ่อมใหม่
-            </a>
+            <x-btn :href="route('repair-requests.create')" icon="wrench">แจ้งซ่อมใหม่</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('repair-requests.index')">
+        <x-form.field label="ค้นหา" class="min-w-64 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="เลขงาน / หัวข้อ / ผู้แจ้ง / หน่วยงาน" />
+        </x-form.field>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('repair-requests.index') }}" class="grid gap-3 md:grid-cols-4">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหาเลขงาน / หัวข้อ / ผู้แจ้ง / หน่วยงาน"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <select name="status" class="rounded border-gray-300">
+        <x-form.field label="สถานะ">
+            <x-form.select name="status" class="w-48">
                 <option value="">ทุกสถานะ</option>
-                <option value="new" @selected($status === 'new')>ใหม่</option>
-                <option value="in_progress" @selected($status === 'in_progress')>กำลังดำเนินการ</option>
-                <option value="completed" @selected($status === 'completed')>เสร็จแล้ว</option>
-                <option value="cancelled" @selected($status === 'cancelled')>ยกเลิก</option>
-            </select>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
+                @foreach ($repairStatuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
-                <a href="{{ route('repair-requests.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>เลขงาน</x-data-table.th>
+            <x-data-table.th>หัวข้อ</x-data-table.th>
+            <x-data-table.th>ผู้แจ้ง / หน่วยงาน</x-data-table.th>
+            <x-data-table.th>ประเภท</x-data-table.th>
+            <x-data-table.th align="center">ความเร่งด่วน</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th>ผู้รับผิดชอบ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">เลขงาน</th>
-                    <th class="border px-4 py-2 text-left">หัวข้อ</th>
-                    <th class="border px-4 py-2 text-left">ผู้แจ้ง / หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-left">ประเภท</th>
-                    <th class="border px-4 py-2 text-center">ความเร่งด่วน</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-left">ผู้รับผิดชอบ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+        @forelse ($repairRequests as $repairRequest)
+            <x-data-table.row>
+                <x-data-table.td class="whitespace-nowrap">
+                    <div class="font-medium text-slate-900">{{ $repairRequest->ticket_no }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $repairRequest->created_at->format('Y-m-d H:i') }}</div>
+                </x-data-table.td>
 
-            <tbody>
-                @forelse ($repairRequests as $repairRequest)
-                    <tr>
-                        <td class="border px-4 py-2 whitespace-nowrap">
-                            {{ $repairRequest->ticket_no }}
-                            <div class="text-xs text-gray-500">
-                                {{ $repairRequest->created_at->format('Y-m-d H:i') }}
-                            </div>
-                        </td>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $repairRequest->title }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $repairRequest->location ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            <div class="font-medium">{{ $repairRequest->title }}</div>
-                            <div class="text-xs text-gray-500">{{ $repairRequest->location ?? '-' }}</div>
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $repairRequest->requesterEmployee?->full_name ?? $repairRequest->requester?->name ?? '-' }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $repairRequest->department?->name ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $repairRequest->requesterEmployee?->full_name ?? $repairRequest->requester?->name ?? '-' }}
-                            <div class="text-xs text-gray-500">
-                                {{ $repairRequest->department?->name ?? '-' }}
-                            </div>
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $repairRequest->category }}</div>
 
-                        <td class="border px-4 py-2">
-                            {{ $repairRequest->category }}
+                    @if ($repairRequest->repairable)
+                        <div class="mt-0.5 text-xs text-slate-500">{{ class_basename($repairRequest->repairable_type) }}</div>
+                    @endif
+                </x-data-table.td>
 
-                            @if ($repairRequest->repairable)
-                                <div class="text-xs text-gray-500">
-                                    {{ class_basename($repairRequest->repairable_type) }}
-                                </div>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$priorityTones[$repairRequest->priority] ?? 'info'">
+                        {{ $priorities[$repairRequest->priority] ?? 'ปกติ' }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($repairRequest->priority === 'urgent')
-                                <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-800">ด่วนมาก</span>
-                            @elseif ($repairRequest->priority === 'high')
-                                <span class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800">สูง</span>
-                            @elseif ($repairRequest->priority === 'low')
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">ต่ำ</span>
-                            @else
-                                <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">ปกติ</span>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$repairTones[$repairRequest->status] ?? 'slate'" dot>
+                        {{ $repairStatuses[$repairRequest->status] ?? $repairRequest->status }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($repairRequest->status === 'new')
-                                <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">ใหม่</span>
-                            @elseif ($repairRequest->status === 'in_progress')
-                                <span class="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">กำลังดำเนินการ</span>
-                            @elseif ($repairRequest->status === 'completed')
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">เสร็จแล้ว</span>
-                            @elseif ($repairRequest->status === 'cancelled')
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">ยกเลิก</span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ $repairRequest->status }}</span>
-                            @endif
-                        </td>
+                <x-data-table.td>{{ $repairRequest->assignedUser?->name ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $repairRequest->assignedUser?->name ?? '-' }}
-                        </td>
+                <x-data-table.td align="center">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <x-btn :href="route('repair-requests.show', $repairRequest)" variant="secondary" size="sm">
+                            รายละเอียด
+                        </x-btn>
 
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex flex-wrap justify-center gap-2">
-                                <a href="{{ route('repair-requests.show', $repairRequest) }}"
-                                   class="rounded bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-900">
-                                    รายละเอียด
-                                </a>
+                        @can('repair.update')
+                            <x-btn :href="route('repair-requests.edit', $repairRequest)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                                @can('repair.update')
-                                    <a href="{{ route('repair-requests.edit', $repairRequest) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
+                        @can('repair.delete')
+                            <form method="POST"
+                                  action="{{ route('repair-requests.destroy', $repairRequest) }}"
+                                  onsubmit="return confirm('ยืนยันการลบรายการแจ้งซ่อมนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                                @can('repair.delete')
-                                    <form method="POST"
-                                          action="{{ route('repair-requests.destroy', $repairRequest) }}"
-                                          onsubmit="return confirm('ยืนยันการลบรายการแจ้งซ่อมนี้?')">
-                                        @csrf
-                                        @method('DELETE')
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="8" icon="wrench" title="ไม่พบรายการแจ้งซ่อม"
+                                description="ลองเปลี่ยนคำค้นหาหรือสถานะ">
+                @can('repair.create')
+                    <x-btn :href="route('repair-requests.create')">แจ้งซ่อมใหม่</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบรายการแจ้งซ่อม
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $repairRequests->links() }}
-    </div>
+    <div class="mt-4">{{ $repairRequests->links() }}</div>
 </x-layouts.app>

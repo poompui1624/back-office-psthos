@@ -99,7 +99,7 @@ class AttendanceSummaryController extends Controller
             ->orderBy('scan_time')
             ->get()
             ->groupBy(function ($log) {
-                return $log->employee_id . '|' . $log->scan_date->format('Y-m-d');
+                return $log->employee_id.'|'.$log->scan_date->format('Y-m-d');
             });
 
         DB::transaction(function () use (
@@ -120,14 +120,15 @@ class AttendanceSummaryController extends Controller
 
                 if (! $firstLog) {
                     $skipped++;
+
                     continue;
                 }
 
                 $firstInAt = $firstLog->scan_time;
                 $lastOutAt = $logs->count() > 1 ? $lastLog->scan_time : null;
 
-                $expectedInAt = Carbon::parse($workDate . ' ' . $expectedInTime);
-                $expectedOutAt = Carbon::parse($workDate . ' ' . $expectedOutTime);
+                $expectedInAt = Carbon::parse($workDate.' '.$expectedInTime);
+                $expectedOutAt = Carbon::parse($workDate.' '.$expectedOutTime);
 
                 $workMinutes = 0;
                 $lateMinutes = 0;
@@ -222,6 +223,7 @@ class AttendanceSummaryController extends Controller
             foreach ($schedules as $schedule) {
                 if (! $schedule->employee || ! $schedule->shiftType) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -354,7 +356,10 @@ class AttendanceSummaryController extends Controller
         $startOfMonth = $currentMonth->copy()->startOfMonth()->toDateString();
         $endOfMonth = $currentMonth->copy()->endOfMonth()->toDateString();
 
+        // Every figure on this dashboard is cloned from $baseQuery, so scoping
+        // it here covers the whole page.
         $baseQuery = AttendanceDailySummary::query()
+            ->visibleTo(auth()->user())
             ->whereDate('work_date', '>=', $startOfMonth)
             ->whereDate('work_date', '<=', $endOfMonth);
 

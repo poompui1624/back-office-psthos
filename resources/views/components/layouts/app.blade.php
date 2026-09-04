@@ -1,3 +1,5 @@
+@props(['title' => null, 'subtitle' => null])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -7,298 +9,179 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <div class="min-h-screen flex">
-        @php
-            $hospitalLogo = class_exists(\App\Models\SystemSetting::class)
-                ? \App\Models\SystemSetting::where('key', 'hospital_logo')->value('value')
-                : null;
+<body class="bg-slate-100 text-slate-900 antialiased">
+@php
+    $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
+    $hospital = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
 
-            $hospitalName = class_exists(\App\Models\SystemSetting::class)
-                ? \App\Models\SystemSetting::where('key', 'hospital_name')->value('value')
-                : config('app.name', 'Hospital Backoffice');
-        @endphp
+    $user = auth()->user();
+    $unreadCount = $user?->unreadAppNotifications()->count() ?? 0;
+    $roleLabel = $user?->roles->pluck('name')->join(', ') ?: 'ยังไม่กำหนดสิทธิ์';
 
-        {{-- Sidebar --}}
-        <aside class="w-64 bg-gray-950 text-white">
-            <div class="px-6 py-5 border-b border-gray-800">
-                @php
-                    $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
-                    $name = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
-                @endphp
+    $navSections = collect(config('navigation', []))
+        ->map(function (array $section) use ($user) {
+            $section['items'] = collect($section['items'])
+                ->filter(fn (array $item) => Route::has($item['route'])
+                    && ($item['permission'] === null || $user?->can($item['permission'])))
+                ->values();
 
-                <div class="flex items-center gap-3">
-                    @if ($logoUrl)
-                        <img src="{{ $logoUrl }}"
-                            alt="logo"
-                            class="h-10 w-10 rounded bg-white object-contain p-1">
-                    @endif
+            return $section;
+        })
+        ->filter(fn (array $section) => $section['items']->isNotEmpty());
+@endphp
 
-                    <div>
-                        <div class="font-bold">
-                            {{ $name }}
-                        </div>
-                        <div class="text-xs text-gray-400">
-                            Back-office System
-                        </div>
-                    </div>
+<div class="min-h-screen lg:flex">
+    <input id="app-sidebar-toggle" type="checkbox" class="peer sr-only">
+
+    <label for="app-sidebar-toggle"
+           class="fixed inset-0 z-30 hidden bg-slate-950/60 backdrop-blur-sm peer-checked:block lg:hidden"
+           aria-label="ปิดเมนู"></label>
+
+    <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:translate-x-0 lg:shadow-none">
+        <div class="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+            @if ($logoUrl)
+                <img src="{{ $logoUrl }}" alt="" class="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-1">
+            @else
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-base font-bold text-white shadow-lg shadow-brand-500/30">
+                    {{ mb_substr($hospital, 0, 1) }}
                 </div>
-                <div class="text-xs text-gray-400">
-                    Core System
-                </div>
+            @endif
+
+            <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-bold leading-tight">{{ $hospital }}</div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-400">Back-office System</div>
             </div>
 
-            <nav class="px-4 py-4 space-y-1">
+            <label for="app-sidebar-toggle" class="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="ปิดเมนู">
+                <x-icon name="close" class="h-5 w-5" />
+            </label>
+        </div>
 
-                {{-- Dashboard --}}
-                @can('dashboard.view')
-                    <a href="{{ route('dashboard') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('dashboard') ? 'bg-gray-800' : '' }}">
-                        Dashboard
-                    </a>
-                @endcan
-
-                <div class="pt-4 pb-1 text-xs font-semibold uppercase text-blue-300">
-                    Core System
-                </div>
-
-                @can('approval.view')
-                    <a href="{{ route('approvals.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('approvals.*') ? 'bg-gray-800' : '' }}">
-                        รายการอนุมัติ
-                    </a>
-                @endcan
-
-                @can('department.view')
-                    <a href="{{ route('departments.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('departments.*') ? 'bg-gray-800' : '' }}">
-                        หน่วยงาน
-                    </a>
-                @endcan
-
-                @can('position.view')
-                    <a href="{{ route('positions.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('positions.*') ? 'bg-gray-800' : '' }}">
-                        ตำแหน่ง
-                    </a>
-                @endcan
-
-                @can('employee.view')
-                    <a href="{{ route('employees.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('employees.*') ? 'bg-gray-800' : '' }}">
-                        บุคลากร
-                    </a>
-                @endcan
-
-                @can('user.view')
-                    <a href="{{ route('users.index') }}"
-                       class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('users.*') ? 'bg-gray-800' : '' }}">
-                        ผู้ใช้งานระบบ
-                    </a>
-                @endcan
-
-                @if (Route::has('system-settings.index'))
-                    @can('setting.view')
-                        <a href="{{ route('system-settings.index') }}"
-                           class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('system-settings.*') ? 'bg-gray-800' : '' }}">
-                            ตั้งค่าระบบ
-                        </a>
-                    @endcan
-                @endif
-                @can('audit.view')
-                    <a href="{{ route('audit-logs.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('audit-logs.*') ? 'bg-gray-800' : '' }}">
-                        Audit Log
-                    </a>
-                @endcan
-
-                <div class="pt-4 pb-1 text-xs font-semibold uppercase text-blue-300">
-                    Modules
-                </div>
-
-                @can('meeting.view')
-                <a href="{{ route('meeting-bookings.index') }}"
-                class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('meeting-bookings.*') ? 'bg-gray-800' : '' }}">
-                    จองห้องประชุม
-                </a>
-
-                <a href="{{ route('meeting-rooms.index') }}"
-                class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('meeting-rooms.*') ? 'bg-gray-800' : '' }}">
-                    ห้องประชุม
-                </a>
-            @endcan
-
-                @can('asset.view')
-                    <a href="{{ route('assets.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('assets.*') ? 'bg-gray-800' : '' }}">
-                        ทะเบียนพัสดุ
-                    </a>
-
-                    <a href="{{ route('asset-categories.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('asset-categories.*') ? 'bg-gray-800' : '' }}">
-                        หมวดหมู่พัสดุ
-                    </a>
-
-                    <a href="{{ route('asset-movements.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('asset-movements.*') ? 'bg-gray-800' : '' }}">
-                        โอนย้ายพัสดุ
-                    </a>
-                @endcan
-
-                @can('computer.view')
-                    <a href="{{ route('computers.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('computers.*') ? 'bg-gray-800' : '' }}">
-                        ทะเบียนคอมพิวเตอร์
-                    </a>
-                @endcan
-
-                @can('computer.agent_manage')
-                    <a href="{{ route('computer-agents.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('computer-agents.*') ? 'bg-gray-800' : '' }}">
-                        Computer Agents
-                    </a>
-                @endcan
-
-                @can('software.view')
-                    <a href="{{ route('software-inventory.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-inventory.*') ? 'bg-gray-800' : '' }}">
-                        Software Inventory
-                    </a>
-
-                    <a href="{{ route('software-products.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-products.*') ? 'bg-gray-800' : '' }}">
-                        Software Products
-                    </a>
-
-                    <a href="{{ route('software-licenses.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('software-licenses.*') ? 'bg-gray-800' : '' }}">
-                        Software Licenses
-                    </a>
-                @endcan
-
-                @can('repair.view')
-                    <a href="{{ route('repair-requests.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('repair-requests.*') ? 'bg-gray-800' : '' }}">
-                        ระบบแจ้งซ่อม
-                    </a>
-
-                    <a href="{{ route('repair-requests.kanban') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('repair-requests.kanban') ? 'bg-gray-800' : '' }}">
-                        Repair Kanban
-                    </a>
-                @endcan
-
-                @can('leave.view')
-                    <a href="{{ route('leave-requests.dashboard') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.dashboard') ? 'bg-gray-800' : '' }}">
-                        Leave Dashboard
-                    </a>
-
-                    <a href="{{ route('leave-requests.calendar') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.calendar') ? 'bg-gray-800' : '' }}">
-                        ปฏิทินการลา
-                    </a>
-                    <a href="{{ route('leave-requests.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-requests.*') ? 'bg-gray-800' : '' }}">
-                        ระบบการลา
-                    </a>
-
-                    <a href="{{ route('leave-types.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('leave-types.*') ? 'bg-gray-800' : '' }}">
-                        ประเภทการลา
-                    </a>
-                @endcan
-
-                @can('attendance.view')
-                    <a href="{{ route('attendance-logs.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-logs.*') ? 'bg-gray-800' : '' }}">
-                        เวลาทำงาน
-                    </a>
-
-                    <a href="{{ route('attendance-devices.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-devices.*') ? 'bg-gray-800' : '' }}">
-                        เครื่องสแกนนิ้ว
-                    </a>
-
-                    <a href="{{ route('attendance-summaries.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-summaries.*') ? 'bg-gray-800' : '' }}">
-                        สรุปเวลาทำงาน
-                    </a>
-
-                    <a href="{{ route('attendance-summaries.dashboard') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('attendance-summaries.dashboard') ? 'bg-gray-800' : '' }}">
-                        Attendance Dashboard
-                    </a>
-                @endcan
-
-                @can('duty.view')
-                    <a href="{{ route('duty-schedules.calendar') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('duty-schedules.calendar') ? 'bg-gray-800' : '' }}">
-                        ปฏิทินตารางเวร
-                    </a>
-
-                    <a href="{{ route('duty-schedules.bulk-create') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('duty-schedules.bulk-create') ? 'bg-gray-800' : '' }}">
-                        สร้างเวรหลายรายการ
-                    </a>
-                @endcan
-
-                @can('payroll.view')
-                    <a href="{{ route('payroll-periods.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('payroll-periods.*') ? 'bg-gray-800' : '' }}">
-                        เงินเดือน / สลิป
-                    </a>
-
-                    <a href="{{ route('salary-profiles.index') }}"
-                    class="block rounded px-3 py-2 text-sm hover:bg-gray-800 {{ request()->routeIs('salary-profiles.*') ? 'bg-gray-800' : '' }}">
-                        ตั้งค่าเงินเดือน
-                    </a>
-                @endcan
-            </nav>
-        </aside>
-
-        {{-- Main Content --}}
-        <div class="flex-1 flex flex-col">
-
-            {{-- Topbar --}}
-            <header class="bg-white border-b border-gray-200">
-                <div class="px-6 py-4 flex items-center justify-between">
-                    <div class="font-semibold">
-                        {{ $title ?? 'Dashboard' }}
+        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+            @foreach ($navSections as $section)
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        {{ $section['label'] }}
                     </div>
 
-                    <div class="flex items-center gap-4">
-                        @auth
-                            <div class="text-right">
-                                <div class="text-sm font-medium">
-                                    {{ auth()->user()->name }}
-                                </div>
+                    <div class="space-y-0.5">
+                        @foreach ($section['items'] as $item)
+                            @php $isActive = request()->routeIs($item['active']); @endphp
 
-                                <div class="text-xs text-gray-500">
-                                    {{ auth()->user()->roles->pluck('name')->join(', ') ?: 'no role' }}
-                                </div>
+                            <a href="{{ route($item['route']) }}"
+                               @class([
+                                   'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
+                                   'bg-brand-500 text-white shadow-lg shadow-brand-500/25' => $isActive,
+                                   'text-slate-300 hover:bg-white/10 hover:text-white' => ! $isActive,
+                               ])>
+                                <x-icon :name="$item['icon']" class="h-[18px] w-[18px] shrink-0 {{ $isActive ? 'text-white' : 'text-slate-400 group-hover:text-brand-300' }}" />
+                                <span class="truncate">{{ $item['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </nav>
+
+        @auth
+            <div class="border-t border-white/10 p-3">
+                <div class="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
+                        {{ $user->initials() }}
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate text-sm font-semibold leading-tight">{{ $user->name }}</div>
+                        <div class="truncate text-[11px] text-slate-400">{{ $roleLabel }}</div>
+                    </div>
+
+                    @if (Route::has('logout'))
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-rose-300"
+                                    title="ออกจากระบบ">
+                                <x-icon name="logout" class="h-[18px] w-[18px]" />
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @endauth
+    </aside>
+
+    <div class="flex min-w-0 flex-1 flex-col">
+        <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
+            <div class="flex items-center gap-3 px-4 py-3 sm:px-6">
+                <label for="app-sidebar-toggle"
+                       class="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 lg:hidden"
+                       aria-label="เปิดเมนู">
+                    <x-icon name="menu" />
+                </label>
+
+                <div class="min-w-0 flex-1">
+                    <h1 class="truncate text-base font-bold leading-tight text-slate-900 sm:text-lg">
+                        {{ $title ?? 'Dashboard' }}
+                    </h1>
+
+                    <div class="hidden items-center gap-1.5 text-xs text-slate-500 sm:flex">
+                        @if ($subtitle)
+                            <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+                            <span class="truncate">{{ $subtitle }}</span>
+                        @else
+                            <span>{{ now()->format('d/m/Y H:i') }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                @auth
+                    <div class="flex items-center gap-2">
+                        @if (Route::has('notifications.index'))
+                            <a href="{{ route('notifications.index') }}"
+                               class="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-brand-600"
+                               title="การแจ้งเตือน">
+                                <x-icon name="bell" />
+
+                                @if ($unreadCount > 0)
+                                    <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                                        {{ $unreadCount > 99 ? '99+' : $unreadCount }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
+
+                        <div class="hidden items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-2 pr-3 shadow-sm sm:flex">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-[11px] font-bold text-white">
+                                {{ $user->initials() }}
                             </div>
 
-                            @if (Route::has('logout'))
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-
-                                    <button type="submit"
-                                            class="rounded bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800">
-                                        ออกจากระบบ
-                                    </button>
-                                </form>
-                            @endif
-                        @endauth
+                            <div class="min-w-0 leading-tight">
+                                <div class="truncate text-sm font-semibold text-slate-900">{{ $user->name }}</div>
+                                <div class="max-w-40 truncate text-[11px] text-slate-500">{{ $roleLabel }}</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </header>
+                @endauth
+            </div>
+        </header>
 
-            {{-- Page --}}
-            <main class="flex-1 p-6">
-                {{ $slot }}
-            </main>
-        </div>
+        <main class="min-w-0 flex-1 p-4 sm:p-6">
+            {{-- Rendered once here so pages do not each repeat it. --}}
+            @if (session('success'))
+                <x-alert type="success" class="mb-4">{{ session('success') }}</x-alert>
+            @endif
+
+            @if (session('error'))
+                <x-alert type="error" class="mb-4">{{ session('error') }}</x-alert>
+            @endif
+
+            @if (session('warning'))
+                <x-alert type="warning" class="mb-4">{{ session('warning') }}</x-alert>
+            @endif
+
+            {{ $slot }}
+        </main>
     </div>
+</div>
 </body>
 </html>

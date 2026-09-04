@@ -1,26 +1,13 @@
 <x-layouts.app title="แจ้งซ่อมใหม่">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">แจ้งซ่อมใหม่</h1>
-        <p class="text-sm text-gray-600">บันทึกรายการแจ้งซ่อมเข้าสู่ระบบ</p>
-    </div>
+    <x-page-header title="แจ้งซ่อมใหม่" subtitle="บันทึกรายการแจ้งซ่อมเข้าสู่ระบบ" />
 
-    <div class="rounded bg-white p-6 shadow">
-        <form method="POST" action="{{ route('repair-requests.store') }}" class="space-y-4">
+    <div class="card card-pad max-w-4xl">
+        <form method="POST" action="{{ route('repair-requests.store') }}" class="space-y-6">
             @csrf
 
             @include('repair-requests._form')
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    บันทึกแจ้งซ่อม
-                </button>
-
-                <a href="{{ route('repair-requests.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ย้อนกลับ
-                </a>
-            </div>
+            <x-form.actions :cancel="route('repair-requests.index')" submit-label="บันทึกแจ้งซ่อม" />
         </form>
     </div>
 </x-layouts.app>

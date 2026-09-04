@@ -1,131 +1,71 @@
 <x-layouts.app title="ทะเบียนหน่วยงาน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ทะเบียนหน่วยงาน</h1>
-            <p class="text-sm text-gray-600">จัดการหน่วยงาน กลุ่มงาน และแผนกภายในโรงพยาบาล</p>
-        </div>
-
+    <x-page-header title="ทะเบียนหน่วยงาน" subtitle="จัดการหน่วยงาน กลุ่มงาน และแผนกภายในโรงพยาบาล">
         @can('department.create')
-            <a href="{{ route('departments.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                เพิ่มหน่วยงาน
-            </a>
+            <x-btn :href="route('departments.create')" icon="building">เพิ่มหน่วยงาน</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('departments.index')">
+        <x-form.field label="ค้นหา" class="flex-1">
+            <x-form.input name="search" :value="$search" placeholder="รหัส / ชื่อหน่วยงาน / ประเภท" />
+        </x-form.field>
+    </x-filter-bar>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>รหัส</x-data-table.th>
+            <x-data-table.th>ชื่อหน่วยงาน</x-data-table.th>
+            <x-data-table.th>หน่วยงานแม่</x-data-table.th>
+            <x-data-table.th>ประเภท</x-data-table.th>
+            <x-data-table.th align="center">บุคลากร</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('departments.index') }}" class="flex gap-2">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัส / ชื่อหน่วยงาน / ประเภท"
-                   class="w-full rounded border-gray-300">
+        @forelse ($departments as $department)
+            <x-data-table.row>
+                <x-data-table.td class="font-medium text-slate-900">{{ $department->code }}</x-data-table.td>
+                <x-data-table.td>{{ $department->name }}</x-data-table.td>
+                <x-data-table.td>{{ $department->parent?->name ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $department->type ?? '-' }}</x-data-table.td>
+                <x-data-table.td align="center">{{ $department->employees_count }}</x-data-table.td>
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ค้นหา
-            </button>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$department->is_active ? 'success' : 'slate'" dot>
+                        {{ $department->is_active ? 'ใช้งาน' : 'ปิดใช้งาน' }}
+                    </x-badge>
+                </x-data-table.td>
 
-            <a href="{{ route('departments.index') }}"
-               class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                ล้าง
-            </a>
-        </form>
-    </div>
+                <x-data-table.td align="center">
+                    <div class="flex justify-center gap-2">
+                        @can('department.update')
+                            <x-btn :href="route('departments.edit', $department)" variant="secondary" size="sm">
+                                แก้ไข
+                            </x-btn>
+                        @endcan
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">รหัส</th>
-                    <th class="border px-4 py-2 text-left">ชื่อหน่วยงาน</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงานแม่</th>
-                    <th class="border px-4 py-2 text-left">ประเภท</th>
-                    <th class="border px-4 py-2 text-center">บุคลากร</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($departments as $department)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $department->code }}
-                        </td>
+                        @can('department.delete')
+                            <form method="POST"
+                                  action="{{ route('departments.destroy', $department) }}"
+                                  onsubmit="return confirm('ยืนยันการลบหน่วยงานนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                        <td class="border px-4 py-2">
-                            {{ $department->name }}
-                        </td>
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="7" icon="building" title="ไม่พบข้อมูลหน่วยงาน"
+                                description="ลองเปลี่ยนคำค้นหา หรือเพิ่มหน่วยงานใหม่">
+                @can('department.create')
+                    <x-btn :href="route('departments.create')">เพิ่มหน่วยงาน</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                        <td class="border px-4 py-2">
-                            {{ $department->parent?->name ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $department->type ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            {{ $department->employees_count }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            @if ($department->is_active)
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">ใช้งาน</span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">ปิดใช้งาน</span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('department.update')
-                                    <a href="{{ route('departments.edit', $department) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white hover:bg-yellow-600">
-                                        แก้ไข
-                                    </a>
-                                @endcan
-
-                                @can('department.delete')
-                                    <form method="POST"
-                                          action="{{ route('departments.destroy', $department) }}"
-                                          onsubmit="return confirm('ยืนยันการลบหน่วยงานนี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูลหน่วยงาน
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $departments->links() }}
-    </div>
+    <div class="mt-4">{{ $departments->links() }}</div>
 </x-layouts.app>

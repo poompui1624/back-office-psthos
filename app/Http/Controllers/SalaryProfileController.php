@@ -93,12 +93,12 @@ class SalaryProfileController extends Controller
 
     private function validateProfile(Request $request, ?SalaryProfile $salaryProfile = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'employee_id' => [
                 'required',
                 'exists:employees,id',
                 $salaryProfile
-                    ? 'unique:salary_profiles,employee_id,' . $salaryProfile->id
+                    ? 'unique:salary_profiles,employee_id,'.$salaryProfile->id
                     : 'unique:salary_profiles,employee_id',
             ],
             'base_salary' => ['required', 'numeric', 'min:0'],
@@ -112,8 +112,16 @@ class SalaryProfileController extends Controller
             'late_deduction_per_minute' => ['nullable', 'numeric', 'min:0'],
             'early_leave_deduction_per_minute' => ['nullable', 'numeric', 'min:0'],
             'absent_deduction_per_day' => ['nullable', 'numeric', 'min:0'],
+            'ot_rate_per_hour' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string'],
         ]);
+
+        // An unchecked box posts nothing, so without this the flag can only
+        // ever be turned on. Every other controller with an is_active already
+        // does this; this one was missed.
+        $validated['is_active'] = $request->boolean('is_active');
+
+        return $validated;
     }
 }

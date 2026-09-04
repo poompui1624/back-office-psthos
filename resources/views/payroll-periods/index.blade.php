@@ -1,123 +1,75 @@
 <x-layouts.app title="รอบเงินเดือน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">รอบเงินเดือน</h1>
-            <p class="text-sm text-gray-600">
-                สร้างรอบเงินเดือนและ Generate สลิปเงินเดือน
-            </p>
-        </div>
+    @php
+        $periodStatuses = ['draft' => 'ร่าง', 'generated' => 'สร้างสลิปแล้ว', 'closed' => 'ปิดรอบแล้ว'];
+        $periodTones = ['draft' => 'slate', 'generated' => 'info', 'closed' => 'success'];
+    @endphp
 
-        <div class="flex gap-2">
-            <a href="{{ route('salary-profiles.index') }}"
-               class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ตั้งค่าเงินเดือน
-            </a>
+    <x-page-header title="รอบเงินเดือน" subtitle="สร้างรอบเงินเดือนและ Generate สลิปเงินเดือน">
+        <x-btn :href="route('salary-profiles.index')" variant="secondary" icon="cog">ตั้งค่าเงินเดือน</x-btn>
 
-            @can('payroll.create')
-                <a href="{{ route('payroll-periods.create') }}"
-                   class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    สร้างรอบเงินเดือน
-                </a>
-            @endcan
-        </div>
-    </div>
+        @can('payroll.create')
+            <x-btn :href="route('payroll-periods.create')" icon="money">สร้างรอบเงินเดือน</x-btn>
+        @endcan
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>รอบเงินเดือน</x-data-table.th>
+            <x-data-table.th align="center">ปี/เดือน</x-data-table.th>
+            <x-data-table.th align="center">ช่วงวันที่</x-data-table.th>
+            <x-data-table.th align="center">จำนวนสลิป</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th>หมายเหตุ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+        @forelse ($periods as $period)
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $period->name }}</div>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">รอบเงินเดือน</th>
-                    <th class="border px-4 py-2 text-center">ปี/เดือน</th>
-                    <th class="border px-4 py-2 text-center">ช่วงวันที่</th>
-                    <th class="border px-4 py-2 text-center">จำนวนสลิป</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-left">หมายเหตุ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
+                    @if ($period->generated_at)
+                        <div class="mt-0.5 text-xs text-slate-500">
+                            Generate: {{ $period->generated_at->format('Y-m-d H:i') }}
+                        </div>
+                    @endif
+                </x-data-table.td>
 
-            <tbody>
-                @forelse ($periods as $period)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $period->name }}
+                <x-data-table.td align="center" class="tabular-nums">
+                    {{ str_pad($period->month, 2, '0', STR_PAD_LEFT) }}/{{ $period->year }}
+                </x-data-table.td>
 
-                            @if ($period->generated_at)
-                                <div class="text-xs text-gray-500">
-                                    Generate: {{ $period->generated_at->format('Y-m-d H:i') }}
-                                </div>
-                            @endif
-                        </td>
+                <x-data-table.td align="center" class="whitespace-nowrap tabular-nums">
+                    {{ $period->start_date?->format('Y-m-d') }} ถึง {{ $period->end_date?->format('Y-m-d') }}
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ str_pad($period->month, 2, '0', STR_PAD_LEFT) }}/{{ $period->year }}
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge tone="brand">{{ $period->payslips_count }}</x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center whitespace-nowrap">
-                            {{ $period->start_date?->format('Y-m-d') }}
-                            ถึง
-                            {{ $period->end_date?->format('Y-m-d') }}
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$periodTones[$period->status] ?? 'slate'" dot>
+                        {{ $periodStatuses[$period->status] ?? $period->status }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $period->payslips_count }}
-                        </td>
+                <x-data-table.td>{{ $period->remark ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($period->status === 'draft')
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    ร่าง
-                                </span>
-                            @elseif ($period->status === 'generated')
-                                <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                                    สร้างสลิปแล้ว
-                                </span>
-                            @elseif ($period->status === 'closed')
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    ปิดรอบแล้ว
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    {{ $period->status }}
-                                </span>
-                            @endif
-                        </td>
+                <x-data-table.td align="center">
+                    <x-btn :href="route('payroll-periods.show', $period)" variant="secondary" size="sm">
+                        รายละเอียด
+                    </x-btn>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="7" icon="money" title="ยังไม่มีรอบเงินเดือน"
+                                description="สร้างรอบเงินเดือนเพื่อเริ่ม Generate สลิป">
+                @can('payroll.create')
+                    <x-btn :href="route('payroll-periods.create')">สร้างรอบเงินเดือน</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-                        <td class="border px-4 py-2">
-                            {{ $period->remark ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <a href="{{ route('payroll-periods.show', $period) }}"
-                               class="rounded bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-900">
-                                รายละเอียด
-                            </a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ยังไม่มีรอบเงินเดือน
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $periods->links() }}
-    </div>
+    <div class="mt-4">{{ $periods->links() }}</div>
 </x-layouts.app>

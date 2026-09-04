@@ -8,9 +8,10 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\RepairRequest;
 use App\Models\User;
+use App\Services\AppNotificationService;
+use App\Services\DocumentNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Services\AppNotificationService;
 
 class RepairRequestController extends Controller
 {
@@ -22,6 +23,7 @@ class RepairRequestController extends Controller
         $status = $request->string('status')->toString();
 
         $repairRequests = RepairRequest::query()
+            ->visibleTo(auth()->user())
             ->with([
                 'requester',
                 'requesterEmployee',
@@ -297,11 +299,7 @@ class RepairRequestController extends Controller
 
     private function generateTicketNo(): string
     {
-        $prefix = 'RP' . now()->format('Ymd');
-
-        $count = RepairRequest::where('ticket_no', 'like', $prefix . '%')->count() + 1;
-
-        return $prefix . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return DocumentNumberService::nextForToday('RP', 'repair_requests', 'ticket_no');
     }
 
     private function notifyRepairCreated(RepairRequest $repairRequest): void
@@ -323,10 +321,8 @@ class RepairRequestController extends Controller
             );
         }
 
-        $repairAdmins = User::permission('repair.update')
-            ->where('is_active', true)
-            ->where('id', '!=', $repairRequest->assigned_to)
-            ->get();
+        $repairAdmins = AppNotificationService::activeUsersWithPermission('repair.update')
+            ->where('id', '!=', $repairRequest->assigned_to);
 
         foreach ($repairAdmins as $user) {
             AppNotificationService::sendToUser(
@@ -432,6 +428,7 @@ class RepairRequestController extends Controller
         ];
 
         $repairRequests = RepairRequest::query()
+            ->visibleTo(auth()->user())
             ->with([
                 'requester',
                 'requesterEmployee',

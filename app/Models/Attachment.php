@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Attachment extends Model
 {
@@ -32,10 +32,6 @@ class Attachment extends Model
 
     public function getFileSizeTextAttribute(): string
     {
-        if ($this->file_size >= 1024 * 1024) {
-            return number_format($this->file_size / 1024 / 1024, 2) . ' MB';
-        }
-
-        return number_format($this->file_size / 1024, 2) . ' KB';
+        return human_file_size($this->file_size);
     }
 }

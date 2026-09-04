@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
@@ -17,70 +17,116 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'dashboard.view',
 
-            'users.view',
-            'users.create',
-            'users.edit',
-            'users.delete',
+            'approval.view',
+            'approval.approve',
+            'approval.reject',
 
-            'roles.view',
-            'roles.create',
-            'roles.edit',
-            'roles.delete',
+            'attachment.upload',
+            'attachment.download',
+            'attachment.delete',
 
-            'departments.view',
-            'departments.create',
-            'departments.edit',
-            'departments.delete',
+            'audit.view',
 
-            'employees.view',
-            'employees.create',
-            'employees.edit',
-            'employees.delete',
+            'department.view',
+            'department.create',
+            'department.update',
+            'department.delete',
 
-            'assets.view',
-            'assets.create',
-            'assets.edit',
-            'assets.delete',
+            'position.view',
+            'position.create',
+            'position.update',
+            'position.delete',
 
-            'computers.view',
-            'computers.create',
-            'computers.edit',
-            'computers.delete',
+            'employee.view',
+            'employee.create',
+            'employee.update',
+            'employee.delete',
+            'employee.sensitive.view',
+            'employee.sensitive.update',
+
+            'user.view',
+            'user.create',
+            'user.update',
+            'user.delete',
+
+            'setting.view',
+            'setting.update',
+
+            'asset.view',
+            'asset.create',
+            'asset.update',
+            'asset.delete',
+            'asset.movement',
+
+            'computer.view',
+            'computer.create',
+            'computer.update',
+            'computer.delete',
+            'computer.agent_manage',
 
             'software.view',
             'software.create',
-            'software.edit',
+            'software.update',
             'software.delete',
 
-            'repairs.view',
-            'repairs.create',
-            'repairs.edit',
-            'repairs.delete',
+            'repair.view',
+            'repair.create',
+            'repair.update',
+            'repair.delete',
+
+            'leave.view',
+            'leave.create',
+            'leave.update',
+            'leave.delete',
+            'leave.approve',
+            'leave.create.any',
 
             'attendance.view',
+            'attendance.create',
+            'attendance.update',
+            'attendance.delete',
             'attendance.import',
-            'attendance.edit',
+
+            'duty.view',
+            'duty.create',
+            'duty.update',
+            'duty.delete',
 
             'payroll.view',
-            'payroll.calculate',
-            'payroll.slip',
+            'payroll.create',
+            'payroll.update',
+            'payroll.delete',
+            'payroll.generate',
 
-            'shifts.view',
-            'shifts.create',
-            'shifts.edit',
-            'shifts.delete',
+            'meeting.view',
+            'meeting.create',
+            'meeting.update',
+            'meeting.delete',
+            'meeting.approve',
 
-            'rooms.view',
-            'rooms.book',
-            'rooms.approve',
+            'ita.view',
+            'ita.create',
+            'ita.edit',
+            'ita.delete',
+            'ita.topic.manage',
 
-            'vehicles.view',
-            'vehicles.request',
-            'vehicles.approve',
+            'site.view',
+            'site.manage',
 
-            'leaves.view',
-            'leaves.request',
-            'leaves.approve',
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
+
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
         ];
 
         foreach ($permissions as $permission) {
@@ -91,6 +137,11 @@ class RolePermissionSeeder extends Seeder
         }
 
         $superAdmin = Role::firstOrCreate([
+            'name' => 'super_admin',
+            'guard_name' => 'web',
+        ]);
+
+        $legacySuperAdmin = Role::firstOrCreate([
             'name' => 'super-admin',
             'guard_name' => 'web',
         ]);
@@ -110,103 +161,249 @@ class RolePermissionSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $supervisor = Role::firstOrCreate([
+            'name' => 'supervisor',
+            'guard_name' => 'web',
+        ]);
+
+        $publicRelations = Role::firstOrCreate([
+            'name' => 'pr',
+            'guard_name' => 'web',
+        ]);
+
         $staff = Role::firstOrCreate([
             'name' => 'staff',
             'guard_name' => 'web',
         ]);
 
         $superAdmin->syncPermissions($permissions);
+        $legacySuperAdmin->syncPermissions($permissions);
 
         $admin->syncPermissions([
             'dashboard.view',
 
-            'users.view',
-            'departments.view',
+            'approval.view',
+            'approval.approve',
+            'approval.reject',
 
-            'employees.view',
-            'employees.create',
-            'employees.edit',
+            'attachment.upload',
+            'attachment.download',
+            'attachment.delete',
 
-            'assets.view',
-            'assets.create',
-            'assets.edit',
+            'audit.view',
 
-            'computers.view',
-            'computers.create',
-            'computers.edit',
+            'user.view',
+            'user.create',
+            'user.update',
+
+            'department.view',
+            'department.create',
+            'department.update',
+
+            'position.view',
+            'position.create',
+            'position.update',
+
+            'employee.view',
+            'employee.create',
+            'employee.update',
+            'employee.sensitive.view',
+            'employee.sensitive.update',
+
+            'setting.view',
+            'setting.update',
+
+            'asset.view',
+            'asset.create',
+            'asset.update',
+            'asset.movement',
+
+            'computer.view',
+            'computer.create',
+            'computer.update',
+            'computer.agent_manage',
 
             'software.view',
             'software.create',
-            'software.edit',
+            'software.update',
 
-            'repairs.view',
-            'repairs.create',
-            'repairs.edit',
+            'repair.view',
+            'repair.create',
+            'repair.update',
 
-            'rooms.view',
-            'rooms.book',
-            'rooms.approve',
+            'meeting.view',
+            'meeting.create',
+            'meeting.update',
+            'meeting.approve',
 
-            'vehicles.view',
-            'vehicles.request',
-            'vehicles.approve',
+            'leave.view',
+            'leave.create',
+            'leave.update',
+            'leave.approve',
 
-            'leaves.view',
-            'leaves.request',
-            'leaves.approve',
+            'attendance.view',
+            'attendance.import',
+
+            'duty.view',
+            'duty.create',
+            'duty.update',
+
+            'payroll.view',
+            'payroll.generate',
+
+            'ita.view',
+            'ita.create',
+            'ita.edit',
+            'ita.topic.manage',
+
+            'site.view',
+            'site.manage',
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
+
+            'leave.create.any',
         ]);
 
         $it->syncPermissions([
             'dashboard.view',
 
-            'computers.view',
-            'computers.create',
-            'computers.edit',
+            'attachment.upload',
+            'attachment.download',
+            'attachment.delete',
+
+            'computer.view',
+            'computer.create',
+            'computer.update',
+            'computer.agent_manage',
 
             'software.view',
             'software.create',
-            'software.edit',
+            'software.update',
 
-            'repairs.view',
-            'repairs.create',
-            'repairs.edit',
+            'repair.view',
+            'repair.create',
+            'repair.update',
         ]);
 
         $hr->syncPermissions([
             'dashboard.view',
 
-            'employees.view',
-            'employees.create',
-            'employees.edit',
+            'approval.view',
+            'approval.approve',
+            'approval.reject',
+
+            'attachment.upload',
+            'attachment.download',
+
+            'department.view',
+            'position.view',
+
+            'employee.view',
+            'employee.create',
+            'employee.update',
+            'employee.sensitive.view',
+            'employee.sensitive.update',
 
             'attendance.view',
             'attendance.import',
-            'attendance.edit',
+            'attendance.update',
 
             'payroll.view',
-            'payroll.calculate',
-            'payroll.slip',
+            'payroll.generate',
 
-            'shifts.view',
-            'shifts.create',
-            'shifts.edit',
+            'duty.view',
+            'duty.create',
+            'duty.update',
 
-            'leaves.view',
-            'leaves.approve',
+            'leave.view',
+            'leave.create',
+            'leave.update',
+            'leave.approve',
+            'leave.view.all',
+            'duty.view.all',
+            'attendance.view.all',
+            'repair.view.all',
+            'asset.view.all',
+            'payroll.view.all',
+            'employee.view.all',
+
+            'leave.create.any',
+
+        ]);
+
+        // A head of department approves for their own unit. Withholding the
+        // .view.all permissions is what keeps them scoped to it.
+        $supervisor->syncPermissions([
+            'dashboard.view',
+
+            'attachment.upload',
+            'attachment.download',
+
+            'employee.view',
+
+            'leave.view',
+            'leave.create',
+            'leave.update',
+            'leave.approve',
+
+            'duty.view',
+            'duty.create',
+            'duty.update',
+
+            'attendance.view',
+
+            'repair.view',
+            'repair.create',
+
+            'asset.view',
+
+            'meeting.view',
+            'meeting.create',
+
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
+            'leave.create.any',
+
+        ]);
+
+        // Keeps the public site current without reaching the rest of the system.
+        $publicRelations->syncPermissions([
+            'dashboard.view',
+            'attachment.upload',
+            'attachment.download',
+            'site.view',
+            'site.manage',
         ]);
 
         $staff->syncPermissions([
             'dashboard.view',
-            'repairs.create',
-            'rooms.book',
-            'vehicles.request',
-            'leaves.request',
+            'attachment.upload',
+            'attachment.download',
+            'repair.create',
+            'meeting.create',
+            'leave.create',
+
+            'leave.view.own',
+            'duty.view.own',
+            'attendance.view.own',
+            'repair.view.own',
+            'meeting.view.own',
+            'payslip.view.own',
         ]);
 
         $user = User::first();
 
         if ($user) {
-            $user->assignRole('super-admin');
+            $user->assignRole('super_admin');
         }
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();

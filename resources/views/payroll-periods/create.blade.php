@@ -1,77 +1,35 @@
 <x-layouts.app title="สร้างรอบเงินเดือน">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">สร้างรอบเงินเดือน</h1>
-        <p class="text-sm text-gray-600">
-            สร้างรอบเงินเดือนประจำเดือน แล้วนำไป Generate สลิป
-        </p>
-    </div>
+    <x-page-header title="สร้างรอบเงินเดือน" subtitle="สร้างรอบเงินเดือนประจำเดือน แล้วนำไป Generate สลิป" />
 
-    <div class="rounded bg-white p-6 shadow">
-        <form method="POST" action="{{ route('payroll-periods.store') }}" class="space-y-4">
+    <div class="card card-pad max-w-4xl">
+        <form method="POST" action="{{ route('payroll-periods.store') }}" class="space-y-6">
             @csrf
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                    <label class="mb-1 block font-medium">
-                        ปี <span class="text-red-600">*</span>
-                    </label>
+            <div class="grid gap-4 md:grid-cols-2">
+                <x-form.field label="ปี" name="year" required>
+                    <x-form.input type="number" name="year" :value="old('year', now()->year)" />
+                </x-form.field>
 
-                    <input type="number"
-                           name="year"
-                           value="{{ old('year', now()->year) }}"
-                           class="w-full rounded border-gray-300">
-
-                    @error('year')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="mb-1 block font-medium">
-                        เดือน <span class="text-red-600">*</span>
-                    </label>
-
-                    <select name="month" class="w-full rounded border-gray-300">
+                <x-form.field label="เดือน" name="month" required>
+                    <x-form.select name="month">
                         @for ($m = 1; $m <= 12; $m++)
                             <option value="{{ $m }}" @selected(old('month', now()->month) == $m)>
                                 {{ str_pad($m, 2, '0', STR_PAD_LEFT) }}
                             </option>
                         @endfor
-                    </select>
+                    </x-form.select>
+                </x-form.field>
 
-                    @error('month')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="mb-1 block font-medium">หมายเหตุ</label>
-
-                    <textarea name="remark"
-                              rows="3"
-                              class="w-full rounded border-gray-300">{{ old('remark') }}</textarea>
-
-                    @error('remark')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+                <x-form.field label="หมายเหตุ" name="remark" class="md:col-span-2">
+                    <x-form.textarea name="remark" rows="3" :value="old('remark')" />
+                </x-form.field>
             </div>
 
-            <div class="rounded bg-yellow-50 p-4 text-sm text-yellow-900">
+            <x-alert type="info">
                 ระบบจะสร้างช่วงวันที่เป็นวันแรกถึงวันสุดท้ายของเดือนอัตโนมัติ
-            </div>
+            </x-alert>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    สร้างรอบเงินเดือน
-                </button>
-
-                <a href="{{ route('payroll-periods.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ย้อนกลับ
-                </a>
-            </div>
+            <x-form.actions :cancel="route('payroll-periods.index')" />
         </form>
     </div>
 </x-layouts.app>

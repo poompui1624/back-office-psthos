@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByEmployeeDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceDailySummary extends Model
 {
+    use HasFactory, ScopesByEmployeeDepartment;
+
     protected $fillable = [
         'employee_id',
         'work_date',
@@ -46,5 +50,10 @@ class AttendanceDailySummary extends Model
         $minutes = $this->work_minutes % 60;
 
         return "{$hours} ชม. {$minutes} นาที";
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'attendance';
     }
 }

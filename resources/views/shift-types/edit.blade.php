@@ -1,29 +1,14 @@
 <x-layouts.app title="แก้ไขประเภทเวร">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">แก้ไขประเภทเวร</h1>
-        <p class="text-sm text-gray-600">
-            {{ $shiftType->code }} - {{ $shiftType->name }}
-        </p>
-    </div>
+    <x-page-header title="แก้ไขประเภทเวร" :subtitle="$shiftType->code . ' - ' . $shiftType->name" />
 
-    <div class="rounded bg-white p-6 shadow">
-        <form method="POST" action="{{ route('shift-types.update', $shiftType) }}" class="space-y-4">
+    <div class="card card-pad max-w-4xl">
+        <form method="POST" action="{{ route('shift-types.update', $shiftType) }}" class="space-y-6">
             @csrf
             @method('PUT')
 
             @include('shift-types._form')
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    บันทึกการแก้ไข
-                </button>
-
-                <a href="{{ route('shift-types.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ย้อนกลับ
-                </a>
-            </div>
+            <x-form.actions :cancel="route('shift-types.index')" />
         </form>
     </div>
 </x-layouts.app>

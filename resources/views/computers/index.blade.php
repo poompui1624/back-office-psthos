@@ -1,166 +1,114 @@
 <x-layouts.app title="ทะเบียนคอมพิวเตอร์">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ทะเบียนคอมพิวเตอร์</h1>
-            <p class="text-sm text-gray-600">จัดการเครื่องคอมพิวเตอร์ภายในโรงพยาบาล</p>
-        </div>
+    @php
+        $computerStatuses = ['active' => 'ใช้งาน', 'inactive' => 'ปิดใช้งาน', 'repairing' => 'กำลังซ่อม', 'disposed' => 'จำหน่าย'];
+        $computerTones = ['active' => 'success', 'inactive' => 'slate', 'repairing' => 'warning', 'disposed' => 'slate'];
+    @endphp
 
+    <x-page-header title="ทะเบียนคอมพิวเตอร์" subtitle="จัดการเครื่องคอมพิวเตอร์ภายในโรงพยาบาล">
         @can('computer.create')
-            <a href="{{ route('computers.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                เพิ่มคอมพิวเตอร์
-            </a>
+            <x-btn :href="route('computers.create')" icon="device">เพิ่มคอมพิวเตอร์</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('computers.index')">
+        <x-form.field label="ค้นหา" class="min-w-64 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="hostname / IP / serial / หน่วยงาน" />
+        </x-form.field>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('computers.index') }}" class="grid gap-3 md:grid-cols-4">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหา hostname / IP / serial / หน่วยงาน"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <select name="status" class="rounded border-gray-300">
+        <x-form.field label="สถานะ">
+            <x-form.select name="status" class="w-44">
                 <option value="">ทุกสถานะ</option>
-                <option value="active" @selected($status === 'active')>ใช้งาน</option>
-                <option value="inactive" @selected($status === 'inactive')>ปิดใช้งาน</option>
-                <option value="repairing" @selected($status === 'repairing')>กำลังซ่อม</option>
-                <option value="disposed" @selected($status === 'disposed')>จำหน่าย</option>
-            </select>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
+                @foreach ($computerStatuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
-                <a href="{{ route('computers.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>Hostname</x-data-table.th>
+            <x-data-table.th>Asset</x-data-table.th>
+            <x-data-table.th>IP / MAC</x-data-table.th>
+            <x-data-table.th>OS</x-data-table.th>
+            <x-data-table.th>หน่วยงาน</x-data-table.th>
+            <x-data-table.th>ผู้รับผิดชอบ</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">Hostname</th>
-                    <th class="border px-4 py-2 text-left">Asset</th>
-                    <th class="border px-4 py-2 text-left">IP / MAC</th>
-                    <th class="border px-4 py-2 text-left">OS</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-left">ผู้รับผิดชอบ</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($computers as $computer)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            <div class="font-medium">{{ $computer->hostname }}</div>
-                            <div class="text-xs text-gray-500">
-                                {{ $computer->manufacturer }} {{ $computer->model }}
-                            </div>
-                            @if ($computer->serial_number)
-                                <div class="text-xs text-gray-500">
-                                    S/N: {{ $computer->serial_number }}
-                                </div>
-                            @endif
-                        </td>
+        @forelse ($computers as $computer)
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $computer->hostname }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $computer->manufacturer }} {{ $computer->model }}</div>
 
-                        <td class="border px-4 py-2">
-                            @if ($computer->asset)
-                                {{ $computer->asset->asset_code }}
-                                <div class="text-xs text-gray-500">
-                                    {{ $computer->asset->name }}
-                                </div>
-                            @else
-                                -
-                            @endif
-                        </td>
+                    @if ($computer->serial_number)
+                        <div class="text-xs text-slate-500">S/N: {{ $computer->serial_number }}</div>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->ip_address ?? '-' }}
-                            <div class="text-xs text-gray-500">
-                                {{ $computer->mac_address ?? '-' }}
-                            </div>
-                        </td>
+                <x-data-table.td>
+                    @if ($computer->asset)
+                        <div>{{ $computer->asset->asset_code }}</div>
+                        <div class="mt-0.5 text-xs text-slate-500">{{ $computer->asset->name }}</div>
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->os_name ?? '-' }}
-                            <div class="text-xs text-gray-500">
-                                {{ $computer->os_version ?? '' }}
-                            </div>
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $computer->ip_address ?? '-' }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $computer->mac_address ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->department?->name ?? '-' }}
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $computer->os_name ?? '-' }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $computer->os_version ?? '' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $computer->responsibleEmployee?->full_name ?? '-' }}
-                        </td>
+                <x-data-table.td>{{ $computer->department?->name ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $computer->responsibleEmployee?->full_name ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                                {{ $computer->status }}
-                            </span>
-                        </td>
+                <x-data-table.td align="center">
+                    <x-badge :tone="$computerTones[$computer->status] ?? 'slate'" dot>
+                        {{ $computerStatuses[$computer->status] ?? $computer->status }}
+                    </x-badge>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('computer.view')
-                                    <a href="{{ route('computers.show', $computer) }}"
-                                    class="rounded bg-gray-800 px-3 py-1 text-sm text-white">
-                                        รายละเอียด
-                                    </a>
-                                @endcan
+                <x-data-table.td align="center">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        @can('computer.view')
+                            <x-btn :href="route('computers.show', $computer)" variant="secondary" size="sm">รายละเอียด</x-btn>
+                        @endcan
 
-                                @can('computer.update')
-                                    <a href="{{ route('computers.edit', $computer) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white">
-                                        แก้ไข
-                                    </a>
-                                @endcan
+                        @can('computer.update')
+                            <x-btn :href="route('computers.edit', $computer)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
 
-                                @can('computer.delete')
-                                    <form method="POST"
-                                          action="{{ route('computers.destroy', $computer) }}"
-                                          onsubmit="return confirm('ยืนยันการลบคอมพิวเตอร์นี้?')">
-                                        @csrf
-                                        @method('DELETE')
+                        @can('computer.delete')
+                            <form method="POST"
+                                  action="{{ route('computers.destroy', $computer) }}"
+                                  onsubmit="return confirm('ยืนยันการลบเครื่องนี้?')">
+                                @csrf
+                                @method('DELETE')
 
-                                        <button type="submit"
-                                                class="rounded bg-red-600 px-3 py-1 text-sm text-white">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูลคอมพิวเตอร์
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                                <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
+                            </form>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="8" icon="device" title="ไม่พบข้อมูลคอมพิวเตอร์"
+                                description="ลองเปลี่ยนคำค้นหาหรือสถานะ">
+                @can('computer.create')
+                    <x-btn :href="route('computers.create')">เพิ่มคอมพิวเตอร์</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-    <div class="mt-4">
-        {{ $computers->links() }}
-    </div>
+    <div class="mt-4">{{ $computers->links() }}</div>
 </x-layouts.app>

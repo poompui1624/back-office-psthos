@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 // use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Asset extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'asset_code',
@@ -34,6 +38,29 @@ class Asset extends Model
         'received_date' => 'date',
         'purchase_price' => 'decimal:2',
     ];
+
+    public function getAgeTextAttribute(): string
+    {
+        if (! $this->received_date instanceof CarbonInterface) {
+            return '-';
+        }
+
+        $diff = $this->received_date->diff(now());
+
+        if ($diff->y === 0 && $diff->m === 0) {
+            return $diff->d.' วัน';
+        }
+
+        if ($diff->y === 0) {
+            return $diff->m.' เดือน '.$diff->d.' วัน';
+        }
+
+        if ($diff->m === 0) {
+            return $diff->y.' ปี';
+        }
+
+        return $diff->y.' ปี '.$diff->m.' เดือน';
+    }
 
     public function category(): BelongsTo
     {
@@ -63,5 +90,10 @@ class Asset extends Model
     public function repairRequests(): MorphMany
     {
         return $this->morphMany(RepairRequest::class, 'repairable');
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'asset';
     }
 }

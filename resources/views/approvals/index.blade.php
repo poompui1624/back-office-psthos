@@ -1,116 +1,65 @@
 <x-layouts.app title="รายการอนุมัติ">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">รายการอนุมัติ</h1>
-        <p class="text-sm text-gray-600">รายการที่รออนุมัติจากระบบต่าง ๆ</p>
-    </div>
+    @php
+        $approvalStatuses = ['pending' => 'รออนุมัติ', 'approved' => 'อนุมัติแล้ว', 'rejected' => 'ไม่อนุมัติ', 'cancelled' => 'ยกเลิก'];
+        $approvalTones = ['pending' => 'warning', 'approved' => 'success', 'rejected' => 'danger', 'cancelled' => 'slate'];
+    @endphp
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    <x-page-header title="รายการอนุมัติ" subtitle="รายการที่รออนุมัติจากระบบต่าง ๆ" />
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-filter-bar :action="route('approvals.index')">
+        <x-form.field label="ค้นหา" class="min-w-64 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="module / หัวข้อ / ผู้ขอ" />
+        </x-form.field>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('approvals.index') }}" class="grid gap-3 md:grid-cols-4">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหา module / หัวข้อ / ผู้ขอ"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <select name="status" class="rounded border-gray-300">
+        <x-form.field label="สถานะ">
+            <x-form.select name="status" class="w-44">
                 <option value="">ทุกสถานะ</option>
-                <option value="pending" @selected($status === 'pending')>รออนุมัติ</option>
-                <option value="approved" @selected($status === 'approved')>อนุมัติแล้ว</option>
-                <option value="rejected" @selected($status === 'rejected')>ไม่อนุมัติ</option>
-                <option value="cancelled" @selected($status === 'cancelled')>ยกเลิก</option>
-            </select>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
-
-                <a href="{{ route('approvals.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
+                @foreach ($approvalStatuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
     <div class="space-y-4">
         @forelse ($approvals as $approval)
-            <div class="rounded bg-white p-5 shadow">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <div class="mb-2 flex items-center gap-2">
-                            <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                                {{ $approval->module }}
-                            </span>
+            <div class="card card-pad">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0">
+                        <div class="mb-2 flex flex-wrap items-center gap-2">
+                            <x-badge tone="brand">{{ $approval->module }}</x-badge>
 
-                            @if ($approval->status === 'pending')
-                                <span class="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-                                    รออนุมัติ
-                                </span>
-                            @elseif ($approval->status === 'approved')
-                                <span class="rounded bg-green-100 px-2 py-1 text-xs text-green-800">
-                                    อนุมัติแล้ว
-                                </span>
-                            @elseif ($approval->status === 'rejected')
-                                <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-800">
-                                    ไม่อนุมัติ
-                                </span>
-                            @else
-                                <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                                    {{ $approval->status }}
-                                </span>
-                            @endif
+                            <x-badge :tone="$approvalTones[$approval->status] ?? 'slate'" dot>
+                                {{ $approvalStatuses[$approval->status] ?? $approval->status }}
+                            </x-badge>
                         </div>
 
-                        <h2 class="text-lg font-bold">
-                            {{ $approval->title }}
-                        </h2>
+                        <h2 class="text-lg font-bold text-slate-900">{{ $approval->title }}</h2>
 
                         @if ($approval->description)
-                            <p class="mt-1 text-sm text-gray-600">
-                                {{ $approval->description }}
-                            </p>
+                            <p class="mt-1 text-sm text-slate-600">{{ $approval->description }}</p>
                         @endif
 
-                        <div class="mt-3 text-sm text-gray-500">
-                            ผู้ขอ: {{ $approval->requester?->name ?? '-' }}
-                            |
-                            ผู้อนุมัติ: {{ $approval->approver?->name ?? '-' }}
-                            |
-                            วันที่: {{ $approval->created_at->format('Y-m-d H:i') }}
+                        <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+                            <span>ผู้ขอ: {{ $approval->requester?->name ?? '-' }}</span>
+                            <span>ผู้อนุมัติ: {{ $approval->approver?->name ?? '-' }}</span>
+                            <span>วันที่: {{ $approval->created_at->format('Y-m-d H:i') }}</span>
                         </div>
                     </div>
 
-                    <div class="min-w-64">
+                    <div class="w-full shrink-0 lg:w-64">
                         @if ($approval->status === 'pending')
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 @can('approval.approve')
                                     <form method="POST" action="{{ route('approvals.approve', $approval) }}">
                                         @csrf
                                         @method('PATCH')
 
-                                        <textarea name="comment"
-                                                  rows="2"
-                                                  placeholder="หมายเหตุการอนุมัติ"
-                                                  class="mb-2 w-full rounded border-gray-300 text-sm"></textarea>
+                                        <x-form.textarea name="comment" rows="2" class="mb-2 text-sm"
+                                                         placeholder="หมายเหตุการอนุมัติ" />
 
-                                        <button type="submit"
-                                                class="w-full rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700">
-                                            อนุมัติ
-                                        </button>
+                                        <x-btn type="submit" variant="success" class="w-full justify-center">อนุมัติ</x-btn>
                                     </form>
                                 @endcan
 
@@ -119,20 +68,15 @@
                                         @csrf
                                         @method('PATCH')
 
-                                        <textarea name="comment"
-                                                  rows="2"
-                                                  placeholder="เหตุผลที่ไม่อนุมัติ"
-                                                  class="mb-2 w-full rounded border-gray-300 text-sm"></textarea>
+                                        <x-form.textarea name="comment" rows="2" class="mb-2 text-sm"
+                                                         placeholder="เหตุผลที่ไม่อนุมัติ" />
 
-                                        <button type="submit"
-                                                class="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700">
-                                            ไม่อนุมัติ
-                                        </button>
+                                        <x-btn type="submit" variant="danger" class="w-full justify-center">ไม่อนุมัติ</x-btn>
                                     </form>
                                 @endcan
                             </div>
                         @else
-                            <div class="rounded bg-gray-50 p-3 text-sm text-gray-600">
+                            <div class="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
                                 สรุปผล: {{ $approval->remark ?: '-' }}
                             </div>
                         @endif
@@ -140,36 +84,34 @@
                 </div>
 
                 @if ($approval->data)
-                    <details class="mt-4">
-                        <summary class="cursor-pointer text-sm font-medium text-gray-700">
+                    <details class="group mt-4">
+                        <summary class="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+                            <x-icon name="chevron-right" class="h-3.5 w-3.5 transition group-open:rotate-90" />
                             ดูข้อมูลเพิ่มเติม
                         </summary>
 
-                        <pre class="mt-2 overflow-auto rounded bg-gray-900 p-3 text-xs text-white">{{ json_encode($approval->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                        <pre class="mt-2 overflow-auto rounded-xl bg-slate-900 p-3 text-xs text-white">{{ json_encode($approval->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                     </details>
                 @endif
 
                 @if ($approval->actions->count())
-                    <details class="mt-4">
-                        <summary class="cursor-pointer text-sm font-medium text-gray-700">
+                    <details class="group mt-4">
+                        <summary class="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+                            <x-icon name="chevron-right" class="h-3.5 w-3.5 transition group-open:rotate-90" />
                             ประวัติการดำเนินการ
                         </summary>
 
                         <div class="mt-2 space-y-2">
                             @foreach ($approval->actions as $action)
-                                <div class="rounded bg-gray-50 p-3 text-sm">
-                                    <div>
-                                        {{ $action->created_at->format('Y-m-d H:i') }}
-                                        -
-                                        {{ $action->user?->name ?? 'system' }}
-                                        -
+                                <div class="rounded-xl bg-slate-50 p-3 text-sm">
+                                    <div class="text-slate-700">
+                                        {{ $action->created_at->format('Y-m-d H:i') }} &middot;
+                                        {{ $action->user?->name ?? 'system' }} &middot;
                                         {{ $action->action }}
                                     </div>
 
                                     @if ($action->comment)
-                                        <div class="mt-1 text-gray-600">
-                                            {{ $action->comment }}
-                                        </div>
+                                        <div class="mt-1 text-slate-600">{{ $action->comment }}</div>
                                     @endif
                                 </div>
                             @endforeach
@@ -178,13 +120,12 @@
                 @endif
             </div>
         @empty
-            <div class="rounded bg-white p-8 text-center text-gray-500 shadow">
-                ไม่พบรายการอนุมัติ
+            <div class="card">
+                <x-empty-state icon="approvals" title="ไม่พบรายการอนุมัติ"
+                               description="รายการที่รออนุมัติจากทุกโมดูลจะมาแสดงที่นี่" />
             </div>
         @endforelse
     </div>
 
-    <div class="mt-4">
-        {{ $approvals->links() }}
-    </div>
+    <div class="mt-4">{{ $approvals->links() }}</div>
 </x-layouts.app>

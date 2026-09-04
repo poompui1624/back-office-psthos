@@ -41,7 +41,7 @@ class CheckSoftwareLicenseExpirations extends Command
             return self::SUCCESS;
         }
 
-        $users = User::permission('software.view')->where('is_active', true)->get();
+        $users = AppNotificationService::activeUsersWithPermission('software.view');
 
         if ($users->isEmpty()) {
             $users = User::role('super_admin')->where('is_active', true)->get();

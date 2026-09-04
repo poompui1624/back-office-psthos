@@ -1,31 +1,18 @@
 <x-layouts.app title="แก้ไขปีงบประมาณ ITA">
-    <div class="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">แก้ไขปีงบประมาณ ITA</h1>
-            <p class="mt-1 text-sm text-gray-500">
-                แก้ไขชื่อหรือสถานะเปิดใช้งานของปีงบประมาณ
-            </p>
-        </div>
+    <div class="mx-auto w-full max-w-3xl">
+        @include('ita._nav')
 
-        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <x-page-header title="แก้ไขปีงบประมาณ ITA"
+                       subtitle="แก้ไขชื่อหรือสถานะเปิดใช้งานของปีงบประมาณ" />
+
+        <div class="card card-pad">
             <form method="POST" action="{{ route('ita.fiscal-years.update', $fiscalYear) }}" class="space-y-5">
                 @csrf
                 @method('PUT')
 
-                @include('ita.fiscal-years.form', [
-                    'fiscalYear' => $fiscalYear,
-                ])
+                @include('ita.fiscal-years.form', ['fiscalYear' => $fiscalYear])
 
-                <div class="flex justify-end gap-2">
-                    <a href="{{ route('ita.fiscal-years.index') }}"
-                       class="rounded bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300">
-                        ยกเลิก
-                    </a>
-
-                    <button class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                        บันทึก
-                    </button>
-                </div>
+                <x-form.actions :cancel="route('ita.fiscal-years.index')" cancel-label="ยกเลิก" />
             </form>
         </div>
     </div>

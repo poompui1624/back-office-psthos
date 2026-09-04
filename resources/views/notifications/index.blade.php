@@ -1,80 +1,52 @@
 <x-layouts.app title="แจ้งเตือน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">แจ้งเตือน</h1>
-            <p class="text-sm text-gray-600">รายการแจ้งเตือนของคุณ</p>
-        </div>
-
+    <x-page-header title="แจ้งเตือน" subtitle="รายการแจ้งเตือนของคุณ">
         <form method="POST" action="{{ route('notifications.read-all') }}">
             @csrf
             @method('PATCH')
 
-            <button type="submit"
-                    class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                อ่านทั้งหมด
-            </button>
+            <x-btn type="submit" variant="secondary" icon="approvals">อ่านทั้งหมด</x-btn>
         </form>
-    </div>
-
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    </x-page-header>
 
     <div class="mb-4 flex gap-2">
-        <a href="{{ route('notifications.index') }}"
-           class="rounded px-4 py-2 {{ $filter === '' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700' }}">
-            ทั้งหมด
-        </a>
-
-        <a href="{{ route('notifications.index', ['filter' => 'unread']) }}"
-           class="rounded px-4 py-2 {{ $filter === 'unread' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700' }}">
-            ยังไม่อ่าน
-        </a>
+        @foreach (['' => 'ทั้งหมด', 'unread' => 'ยังไม่อ่าน'] as $value => $label)
+            <a href="{{ $value === '' ? route('notifications.index') : route('notifications.index', ['filter' => $value]) }}"
+               class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ $filter === $value ? 'bg-brand-500 text-white shadow-sm shadow-brand-500/25' : 'bg-white text-slate-700 shadow-sm hover:bg-slate-50' }}">
+                {{ $label }}
+            </a>
+        @endforeach
     </div>
 
     <div class="space-y-3">
         @forelse ($notifications as $notification)
-            <div class="rounded bg-white p-4 shadow {{ $notification->read_at ? 'opacity-70' : '' }}">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            @if (! $notification->read_at)
-                                <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700">
-                                    ใหม่
-                                </span>
-                            @endif
+            <div class="card p-4 {{ $notification->read_at ? 'opacity-70' : 'border-l-4 border-l-brand-500' }}">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            @unless ($notification->read_at)
+                                <x-badge tone="danger">ใหม่</x-badge>
+                            @endunless
 
-                            <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
-                                {{ $notification->type }}
-                            </span>
+                            <x-badge tone="brand">{{ $notification->type }}</x-badge>
 
-                            <h2 class="font-bold">
-                                {{ $notification->title }}
-                            </h2>
+                            <h2 class="font-bold text-slate-900">{{ $notification->title }}</h2>
                         </div>
 
                         @if ($notification->message)
-                            <p class="mt-2 text-sm text-gray-600">
-                                {{ $notification->message }}
-                            </p>
+                            <p class="mt-2 text-sm text-slate-600">{{ $notification->message }}</p>
                         @endif
 
-                        <div class="mt-2 text-xs text-gray-400">
+                        <div class="mt-2 text-xs text-slate-400">
                             {{ $notification->created_at->format('Y-m-d H:i') }}
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
+                    <div class="flex shrink-0 gap-2">
                         <form method="POST" action="{{ route('notifications.read', $notification) }}">
                             @csrf
                             @method('PATCH')
 
-                            <button type="submit"
-                                    class="rounded bg-gray-800 px-3 py-1 text-sm text-white hover:bg-gray-900">
-                                เปิด
-                            </button>
+                            <x-btn type="submit" variant="secondary" size="sm">เปิด</x-btn>
                         </form>
 
                         <form method="POST"
@@ -83,22 +55,18 @@
                             @csrf
                             @method('DELETE')
 
-                            <button type="submit"
-                                    class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
-                                ลบ
-                            </button>
+                            <x-btn type="submit" variant="danger" size="sm">ลบ</x-btn>
                         </form>
                     </div>
                 </div>
             </div>
         @empty
-            <div class="rounded bg-white p-8 text-center text-gray-500 shadow">
-                ไม่มีแจ้งเตือน
+            <div class="card">
+                <x-empty-state icon="bell" title="ไม่มีแจ้งเตือน"
+                               description="เมื่อมีคำขอหรือการอนุมัติที่เกี่ยวข้องกับคุณ จะแจ้งที่นี่" />
             </div>
         @endforelse
     </div>
 
-    <div class="mt-4">
-        {{ $notifications->links() }}
-    </div>
+    <div class="mt-4">{{ $notifications->links() }}</div>
 </x-layouts.app>

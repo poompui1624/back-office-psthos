@@ -176,7 +176,14 @@ class UserController extends Controller
                 ->with('error', 'ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
         }
 
-        if ($user->hasRole('super_admin') && User::role('super_admin')->count() <= 1) {
+        $protectedAdminRoles = ['super_admin', 'super-admin'];
+        $isProtectedAdmin = collect($protectedAdminRoles)
+            ->contains(fn (string $role) => $user->hasRole($role));
+        $protectedAdminCount = User::whereHas('roles', function ($query) use ($protectedAdminRoles) {
+            $query->whereIn('name', $protectedAdminRoles);
+        })->count();
+
+        if ($isProtectedAdmin && $protectedAdminCount <= 1) {
             return redirect()
                 ->route('users.index')
                 ->with('error', 'ไม่สามารถลบ super_admin คนสุดท้ายได้');

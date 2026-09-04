@@ -6,12 +6,12 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Models\User;
 use App\Services\AppNotificationService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LeaveRequestController extends Controller
 {
@@ -23,6 +23,7 @@ class LeaveRequestController extends Controller
         $status = $request->string('status')->toString();
 
         $leaveRequests = LeaveRequest::query()
+            ->visibleTo(auth()->user())
             ->with(['employee', 'department', 'leaveType', 'creator', 'approver'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -296,6 +297,10 @@ class LeaveRequestController extends Controller
         return [
             'employees' => Employee::query()
                 ->where('status', 'active')
+                ->unless(auth()->user()?->can('leave.create.any'), function ($query) {
+                    // Staff file for themselves only, so the picker holds one option.
+                    $query->whereKey(auth()->user()?->employee_id);
+                })
                 ->orderBy('employee_code')
                 ->get(),
 
@@ -313,7 +318,7 @@ class LeaveRequestController extends Controller
 
     private function validateLeaveRequest(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'leave_type_id' => ['required', 'exists:leave_types,id'],
@@ -325,24 +330,31 @@ class LeaveRequestController extends Controller
             'reason' => ['nullable', 'string'],
             'contact_during_leave' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // Without leave.create.any the request is always for the filer, whatever
+        // employee_id the form posted.
+        if (! auth()->user()?->can('leave.create.any')) {
+            $employeeId = auth()->user()?->employee_id;
+
+            abort_if($employeeId === null, 403, 'บัญชีนี้ยังไม่ได้เชื่อมกับทะเบียนบุคลากร');
+
+            $validated['employee_id'] = $employeeId;
+            unset($validated['department_id']);
+        }
+
+        return $validated;
     }
 
     private function generateRequestNo(): string
     {
-        $prefix = 'LV' . now()->format('Ymd');
-
-        $count = LeaveRequest::where('request_no', 'like', $prefix . '%')->count() + 1;
-
-        return $prefix . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return DocumentNumberService::nextForToday('LV', 'leave_requests', 'request_no');
     }
 
     private function notifyLeaveCreated(LeaveRequest $leaveRequest): void
     {
         $leaveRequest->load(['employee', 'leaveType']);
 
-        $users = User::permission('leave.approve')
-            ->where('is_active', true)
-            ->get();
+        $users = AppNotificationService::activeUsersWithPermission('leave.approve');
 
         foreach ($users as $user) {
             AppNotificationService::sendToUser(
@@ -393,60 +405,146 @@ class LeaveRequestController extends Controller
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
 
+        // Every figure below is limited to what this viewer may see, so a
+        // supervisor is not shown hospital-wide totals.
+        $viewer = auth()->user();
+
+        ['month' => $month, 'year' => $year, 'selected_month' => $selectedMonth, 'start_date' => $startOfMonth, 'end_date' => $endOfMonth]
+            = resolve_month_filter($request->input('month'), $request->input('year'));
+
+        $departmentId = $request->string('department_id')->toString();
         $today = now()->toDateString();
-        $startOfMonth = now()->startOfMonth()->toDateString();
-        $endOfMonth = now()->endOfMonth()->toDateString();
+
+        $periodScope = function ($query) use ($startOfMonth, $endOfMonth, $departmentId) {
+            return $query
+                ->whereDate('start_date', '<=', $endOfMonth)
+                ->whereDate('end_date', '>=', $startOfMonth)
+                ->when($departmentId, function ($leaveQuery) use ($departmentId) {
+                    $leaveQuery->where('department_id', $departmentId);
+                });
+        };
 
         $summary = [
-            'pending' => LeaveRequest::where('status', 'pending')->count(),
-            'approved' => LeaveRequest::where('status', 'approved')->count(),
-            'rejected' => LeaveRequest::where('status', 'rejected')->count(),
-            'cancelled' => LeaveRequest::where('status', 'cancelled')->count(),
+            'pending' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'pending')->count(),
+            'approved' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'approved')->count(),
+            'rejected' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'rejected')->count(),
+            'cancelled' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'cancelled')->count(),
 
-            'this_month' => LeaveRequest::whereDate('start_date', '<=', $endOfMonth)
-                ->whereDate('end_date', '>=', $startOfMonth)
-                ->count(),
+            'this_month' => LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->count(),
+            'approved_days' => (float) LeaveRequest::query()->visibleTo($viewer)->tap($periodScope)->where('status', 'approved')->sum('total_days'),
 
-            'today_on_leave' => LeaveRequest::where('status', 'approved')
+            'today_on_leave' => LeaveRequest::query()->visibleTo($viewer)
+                ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
+                ->when($departmentId, function ($query) use ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                })
                 ->count(),
         ];
 
-        $todayLeaves = LeaveRequest::query()
+        $leaveTypeTotals = LeaveRequest::query()->visibleTo($viewer)
+            ->tap($periodScope)
+            ->select('leave_type_id', DB::raw('count(*) as total_requests'), DB::raw('sum(total_days) as total_days'))
+            ->groupBy('leave_type_id')
+            ->get()
+            ->keyBy('leave_type_id');
+
+        $leaveTypeStats = LeaveType::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get()
+            ->map(function (LeaveType $leaveType) use ($leaveTypeTotals) {
+                $total = $leaveTypeTotals->get($leaveType->id);
+
+                return [
+                    'id' => $leaveType->id,
+                    'code' => $leaveType->code,
+                    'name' => $leaveType->name,
+                    'requires_document' => $leaveType->requires_document,
+                    'total_requests' => (int) ($total?->total_requests ?? 0),
+                    'total_days' => (float) ($total?->total_days ?? 0),
+                ];
+            });
+
+        $departmentStats = LeaveRequest::query()->visibleTo($viewer)
+            ->tap($periodScope)
+            ->leftJoin('departments', 'departments.id', '=', 'leave_requests.department_id')
+            ->select([
+                DB::raw("coalesce(departments.name, 'ไม่ระบุหน่วยงาน') as department_name"),
+                DB::raw('count(*) as total_requests'),
+                DB::raw('sum(leave_requests.total_days) as total_days'),
+            ])
+            ->groupBy('departments.id', 'departments.name')
+            ->orderByDesc('total_days')
+            ->limit(8)
+            ->get();
+
+        $todayLeaves = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->orderBy('start_date')
             ->get();
 
-        $pendingRequests = LeaveRequest::query()
+        $pendingRequests = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'pending')
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->latest()
             ->limit(10)
             ->get();
 
-        $upcomingLeaves = LeaveRequest::query()
+        $upcomingLeaves = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->where('status', 'approved')
             ->whereDate('start_date', '>=', $today)
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId);
+            })
             ->orderBy('start_date')
             ->limit(10)
             ->get();
 
+        $recentRequests = LeaveRequest::query()->visibleTo($viewer)
+            ->with(['employee', 'department', 'leaveType', 'approver'])
+            ->tap($periodScope)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $departments = Department::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
         return view('leave-requests.dashboard', compact(
+            'month',
+            'year',
+            'selectedMonth',
+            'departmentId',
+            'departments',
             'summary',
+            'leaveTypeStats',
+            'departmentStats',
             'todayLeaves',
             'pendingRequests',
-            'upcomingLeaves'
+            'upcomingLeaves',
+            'recentRequests'
         ));
     }
 
     public function calendar(Request $request)
     {
         abort_unless(auth()->user()->can('leave.view'), 403);
+
+        $viewer = auth()->user();
 
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
@@ -463,7 +561,7 @@ class LeaveRequestController extends Controller
         $calendarStart = $startOfMonth->copy()->startOfWeek(Carbon::SUNDAY);
         $calendarEnd = $endOfMonth->copy()->endOfWeek(Carbon::SATURDAY);
 
-        $leaveRequests = LeaveRequest::query()
+        $leaveRequests = LeaveRequest::query()->visibleTo($viewer)
             ->with(['employee', 'department', 'leaveType'])
             ->when($status, function ($query) use ($status) {
                 $query->where('status', $status);

@@ -1,147 +1,79 @@
 <x-layouts.app title="ข้อมูลเวลาสแกน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">ข้อมูลเวลาสแกน</h1>
-            <p class="text-sm text-gray-600">
-                รายการเวลาที่นำเข้าจากเครื่องสแกนนิ้วมือ
-            </p>
-        </div>
+    <x-page-header title="ข้อมูลเวลาสแกน" subtitle="รายการเวลาที่นำเข้าจากเครื่องสแกนนิ้วมือ">
+        @can('attendance.view')
+            <x-btn :href="route('attendance-devices.index')" variant="secondary" icon="device">เครื่องสแกน</x-btn>
+        @endcan
 
-        <div class="flex gap-2">
-            @can('attendance.import')
-                <a href="{{ route('attendance-logs.import-form') }}"
-                   class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    นำเข้า CSV
-                </a>
-            @endcan
+        @can('attendance.import')
+            <x-btn :href="route('attendance-logs.import-form')" icon="box">นำเข้า CSV</x-btn>
+        @endcan
+    </x-page-header>
 
-            @can('attendance.view')
-                <a href="{{ route('attendance-devices.index') }}"
-                   class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    เครื่องสแกน
-                </a>
-            @endcan
-        </div>
-    </div>
+    <x-filter-bar :action="route('attendance-logs.index')">
+        <x-form.field label="ค้นหา" class="min-w-64 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="รหัสพนักงาน / ชื่อ / เครื่องสแกน" />
+        </x-form.field>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+        <x-form.field label="ตั้งแต่วันที่">
+            <x-form.input type="date" name="date_from" :value="$dateFrom" />
+        </x-form.field>
 
-    @if (session('error'))
-        <div class="mb-4 rounded bg-red-100 px-4 py-3 text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+        <x-form.field label="ถึงวันที่">
+            <x-form.input type="date" name="date_to" :value="$dateTo" />
+        </x-form.field>
+    </x-filter-bar>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('attendance-logs.index') }}" class="grid gap-3 md:grid-cols-5">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัสพนักงาน / ชื่อ / เครื่องสแกน"
-                   class="rounded border-gray-300 md:col-span-2">
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>วันเวลา</x-data-table.th>
+            <x-data-table.th>รหัสพนักงาน</x-data-table.th>
+            <x-data-table.th>บุคลากร</x-data-table.th>
+            <x-data-table.th>เครื่องสแกน</x-data-table.th>
+            <x-data-table.th>ประเภท</x-data-table.th>
+            <x-data-table.th>Verify</x-data-table.th>
+            <x-data-table.th>Source</x-data-table.th>
+        </x-slot:head>
 
-            <input type="date"
-                   name="date_from"
-                   value="{{ $dateFrom }}"
-                   class="rounded border-gray-300">
+        @forelse ($logs as $log)
+            <x-data-table.row>
+                <x-data-table.td class="whitespace-nowrap">
+                    <div class="font-medium text-slate-900 tabular-nums">{{ $log->scan_time?->format('Y-m-d H:i:s') }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">วันที่: {{ $log->scan_date?->format('Y-m-d') }}</div>
+                </x-data-table.td>
 
-            <input type="date"
-                   name="date_to"
-                   value="{{ $dateTo }}"
-                   class="rounded border-gray-300">
+                <x-data-table.td>{{ $log->employee_code ?? '-' }}</x-data-table.td>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
+                <x-data-table.td>
+                    @if ($log->employee)
+                        <div>{{ $log->employee->full_name }}</div>
+                        <div class="mt-0.5 text-xs text-slate-500">{{ $log->employee->department?->name ?? '-' }}</div>
+                    @else
+                        <x-badge tone="danger">ไม่พบในทะเบียนบุคลากร</x-badge>
+                    @endif
+                </x-data-table.td>
 
-                <a href="{{ route('attendance-logs.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
+                <x-data-table.td>
+                    @if ($log->device)
+                        <div>{{ $log->device->code }}</div>
+                        <div class="mt-0.5 text-xs text-slate-500">{{ $log->device->name }}</div>
+                    @else
+                        {{ $log->device_code ?? '-' }}
+                    @endif
+                </x-data-table.td>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">วันเวลา</th>
-                    <th class="border px-4 py-2 text-left">รหัสพนักงาน</th>
-                    <th class="border px-4 py-2 text-left">บุคลากร</th>
-                    <th class="border px-4 py-2 text-left">เครื่องสแกน</th>
-                    <th class="border px-4 py-2 text-left">ประเภท</th>
-                    <th class="border px-4 py-2 text-left">Verify</th>
-                    <th class="border px-4 py-2 text-left">Source</th>
-                </tr>
-            </thead>
+                <x-data-table.td>{{ $log->scan_type ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $log->verify_type ?? '-' }}</x-data-table.td>
+                <x-data-table.td>{{ $log->source }}</x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="7" icon="clock" title="ไม่พบข้อมูลเวลาสแกน"
+                                description="ลองเปลี่ยนช่วงวันที่ หรือนำเข้าไฟล์จากเครื่องสแกน">
+                @can('attendance.import')
+                    <x-btn :href="route('attendance-logs.import-form')">นำเข้า CSV</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
-            <tbody>
-                @forelse ($logs as $log)
-                    <tr>
-                        <td class="border px-4 py-2 whitespace-nowrap">
-                            {{ $log->scan_time?->format('Y-m-d H:i:s') }}
-                            <div class="text-xs text-gray-500">
-                                วันที่: {{ $log->scan_date?->format('Y-m-d') }}
-                            </div>
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $log->employee_code ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            @if ($log->employee)
-                                {{ $log->employee->full_name }}
-                                <div class="text-xs text-gray-500">
-                                    {{ $log->employee->department?->name ?? '-' }}
-                                </div>
-                            @else
-                                <span class="text-red-600">ไม่พบในทะเบียนบุคลากร</span>
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            @if ($log->device)
-                                {{ $log->device->code }}
-                                <div class="text-xs text-gray-500">
-                                    {{ $log->device->name }}
-                                </div>
-                            @else
-                                {{ $log->device_code ?? '-' }}
-                            @endif
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $log->scan_type ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $log->verify_type ?? '-' }}
-                        </td>
-
-                        <td class="border px-4 py-2">
-                            {{ $log->source }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูลเวลาสแกน
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $logs->links() }}
-    </div>
+    <div class="mt-4">{{ $logs->links() }}</div>
 </x-layouts.app>

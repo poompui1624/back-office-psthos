@@ -1,155 +1,110 @@
 <x-layouts.app title="Software Licenses">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">Software Licenses</h1>
-            <p class="text-sm text-gray-600">ทะเบียน License วันหมดอายุ ต่ออายุ และยกเลิก</p>
-        </div>
+    @php
+        $licenseStatuses = ['active' => 'ใช้งาน', 'expired' => 'หมดอายุ', 'renewed' => 'ต่ออายุแล้ว', 'cancelled' => 'ยกเลิก'];
+        $licenseTones = ['active' => 'success', 'expired' => 'danger', 'renewed' => 'info', 'cancelled' => 'slate'];
+    @endphp
 
+    <x-page-header title="Software Licenses" subtitle="ทะเบียน License วันหมดอายุ ต่ออายุ และยกเลิก">
         @can('software.create')
-            <a href="{{ route('software-licenses.create') }}"
-               class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                เพิ่ม License
-            </a>
+            <x-btn :href="route('software-licenses.create')" icon="key">เพิ่ม License</x-btn>
         @endcan
-    </div>
+    </x-page-header>
 
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">{{ session('success') }}</div>
-    @endif
+    <x-filter-bar :action="route('software-licenses.index')">
+        <x-form.field label="ค้นหา" class="min-w-64 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="Software / License / Vendor" />
+        </x-form.field>
 
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('software-licenses.index') }}" class="grid gap-3 md:grid-cols-4">
-            <input type="text" name="search" value="{{ $search }}"
-                   placeholder="ค้นหา Software / License / Vendor"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <select name="status" class="rounded border-gray-300">
+        <x-form.field label="สถานะ">
+            <x-form.select name="status" class="w-44">
                 <option value="">ทุกสถานะ</option>
-                <option value="active" @selected($status === 'active')>ใช้งาน</option>
-                <option value="expired" @selected($status === 'expired')>หมดอายุ</option>
-                <option value="renewed" @selected($status === 'renewed')>ต่ออายุแล้ว</option>
-                <option value="cancelled" @selected($status === 'cancelled')>ยกเลิก</option>
-            </select>
 
-            <div class="flex gap-2">
-                <button class="rounded bg-gray-800 px-4 py-2 text-white">ค้นหา</button>
-                <a href="{{ route('software-licenses.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700">ล้าง</a>
-            </div>
-        </form>
-    </div>
+                @foreach ($licenseStatuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">Software</th>
-                    <th class="border px-4 py-2 text-left">License</th>
-                    <th class="border px-4 py-2 text-center">Seats</th>
-                    <th class="border px-4 py-2 text-left">วันหมดอายุ</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-center">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($licenses as $license)
-                    <tr>
-                        <td class="border px-4 py-2">
-                            {{ $license->product?->name }}
-                            <div class="text-xs text-gray-500">
-                                {{ $license->product?->vendor ?? '-' }}
-                            </div>
-                        </td>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>Software</x-data-table.th>
+            <x-data-table.th>License</x-data-table.th>
+            <x-data-table.th align="center">Seats</x-data-table.th>
+            <x-data-table.th>วันหมดอายุ</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th align="center">จัดการ</x-data-table.th>
+        </x-slot:head>
 
-                        <td class="border px-4 py-2">
-                            {{ $license->license_name ?? '-' }}
-                            <div class="text-xs text-gray-500">
-                                {{ $license->license_type ?? '-' }}
-                            </div>
-                        </td>
+        @forelse ($licenses as $license)
+            <x-data-table.row>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $license->product?->name }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $license->product?->vendor ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $license->used_seats }} / {{ $license->total_seats }}
-                        </td>
+                <x-data-table.td>
+                    <div>{{ $license->license_name ?? '-' }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $license->license_type ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            @if ($license->expire_date)
-                            {{ $license->expire_date->format('Y-m-d') }}
+                <x-data-table.td align="center" class="tabular-nums">
+                    {{ $license->used_seats }} / {{ $license->total_seats }}
+                </x-data-table.td>
+
+                <x-data-table.td>
+                    @if ($license->expire_date)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="tabular-nums">{{ $license->expire_date->format('Y-m-d') }}</span>
 
                             @if ($license->is_expired)
-                                <span class="ml-2 rounded bg-red-100 px-2 py-1 text-xs text-red-800">
-                                    หมดอายุ
-                                </span>
+                                <x-badge tone="danger">หมดอายุ</x-badge>
                             @elseif ($license->is_expiring_soon)
-                                <span class="ml-2 rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-                                    ใกล้หมดอายุ
-                                </span>
+                                <x-badge tone="warning">ใกล้หมดอายุ</x-badge>
                             @endif
+                        </div>
 
-                            @if ($license->last_expire_notified_at)
-                                <div class="mt-1 text-xs text-gray-500">
-                                    แจ้งเตือนล่าสุด:
-                                    {{ $license->last_expire_notified_at->format('Y-m-d H:i') }}
-                                </div>
-                            @endif
-                        @else
-                            -
-                        @endif
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                                {{ $license->status }}
-                            </span>
-                        </td>
-
-                        <td class="border px-4 py-2 text-center">
-                            <div class="flex justify-center gap-2">
-                                @can('software.update')
-                                <a href="{{ route('software-licenses.renew-form', $license) }}"
-                                class="rounded bg-green-600 px-3 py-1 text-sm text-white">
-                                    ต่ออายุ
-                                </a>
-                                @endcan
-
-                                @if ($license->status !== 'cancelled')
-                                    <a href="{{ route('software-licenses.cancel-form', $license) }}"
-                                    class="rounded bg-red-700 px-3 py-1 text-sm text-white">
-                                        ยกเลิก
-                                    </a>
-                                @endif
-                                @can('software.update')
-                                    <a href="{{ route('software-licenses.edit', $license) }}"
-                                       class="rounded bg-yellow-500 px-3 py-1 text-sm text-white">
-                                        แก้ไข
-                                    </a>
-                                @endcan
-
-                                @can('software.delete')
-                                    <form method="POST"
-                                          action="{{ route('software-licenses.destroy', $license) }}"
-                                          onsubmit="return confirm('ยืนยันการลบ License นี้?')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button class="rounded bg-red-600 px-3 py-1 text-sm text-white">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                @endcan
+                        @if ($license->last_expire_notified_at)
+                            <div class="mt-1 text-xs text-slate-500">
+                                แจ้งเตือนล่าสุด: {{ $license->last_expire_notified_at->format('Y-m-d H:i') }}
                             </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="border px-4 py-6 text-center text-gray-500">
-                            ไม่พบข้อมูล License
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        @endif
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
+
+                <x-data-table.td align="center">
+                    <x-badge :tone="$licenseTones[$license->status] ?? 'slate'" dot>
+                        {{ $licenseStatuses[$license->status] ?? $license->status }}
+                    </x-badge>
+                </x-data-table.td>
+
+                <x-data-table.td align="center">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        @can('software.update')
+                            <x-btn :href="route('software-licenses.renew-form', $license)" size="sm">ต่ออายุ</x-btn>
+                        @endcan
+
+                        @if ($license->status !== 'cancelled')
+                            <x-btn :href="route('software-licenses.cancel-form', $license)" variant="danger" size="sm">ยกเลิก</x-btn>
+                        @endif
+
+                        @can('software.update')
+                            <x-btn :href="route('software-licenses.edit', $license)" variant="secondary" size="sm">แก้ไข</x-btn>
+                        @endcan
+                    </div>
+                </x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="6" icon="key" title="ไม่พบ License"
+                                description="ลองเปลี่ยนคำค้นหาหรือสถานะ">
+                @can('software.create')
+                    <x-btn :href="route('software-licenses.create')">เพิ่ม License</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
 
     <div class="mt-4">{{ $licenses->links() }}</div>
 </x-layouts.app>

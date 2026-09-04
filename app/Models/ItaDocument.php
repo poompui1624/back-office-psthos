@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ItaDocument extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'fiscal_year_id',
@@ -63,17 +64,7 @@ class ItaDocument extends Model
 
     public function getFileSizeHumanAttribute(): string
     {
-        $bytes = (int) $this->file_size;
-
-        if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
-        }
-
-        if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
-        }
-
-        return $bytes . ' B';
+        return human_file_size($this->file_size);
     }
 
     public function scopePublic($query)

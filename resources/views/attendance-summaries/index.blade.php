@@ -1,227 +1,153 @@
 <x-layouts.app title="สรุปเวลาทำงานรายวัน">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">สรุปเวลาทำงานรายวัน</h1>
-            <p class="text-sm text-gray-600">
-                สรุปเวลาเข้าออกงานจากข้อมูลเครื่องสแกนนิ้วมือ
-            </p>
-        </div>
-
-        <div class="flex gap-2">
-            <a href="{{ route('attendance-summaries.dashboard') }}"
-            class="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-800">
-                Dashboard
-            </a>
-
-            <a href="{{ route('attendance-summaries.print', request()->query()) }}"
-                target="_blank"
-                class="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700">
-                    พิมพ์รายงาน
-                </a>
-            @can('attendance.import')
-                <a href="{{ route('attendance-summaries.generate-form') }}"
-                   class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                    สร้างสรุปเวลา
-                </a>
-            @endcan
-
-            <a href="{{ route('attendance-logs.index') }}"
-               class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                ข้อมูลเวลาสแกน
-            </a>
-        </div>
-    </div>
-
-    @if (session('success'))
-        <div class="mb-4 rounded bg-green-100 px-4 py-3 text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <div class="mb-4 rounded bg-white p-4 shadow">
-        <form method="GET" action="{{ route('attendance-summaries.index') }}" class="grid gap-3 md:grid-cols-6">
-            <input type="text"
-                   name="search"
-                   value="{{ $search }}"
-                   placeholder="ค้นหารหัส / ชื่อบุคลากร"
-                   class="rounded border-gray-300 md:col-span-2">
-
-            <input type="date"
-                   name="date_from"
-                   value="{{ $dateFrom }}"
-                   class="rounded border-gray-300">
-
-            <input type="date"
-                   name="date_to"
-                   value="{{ $dateTo }}"
-                   class="rounded border-gray-300">
-
-            <select name="status" class="rounded border-gray-300">
-                <option value="">ทุกสถานะ</option>
-                <option value="normal" @selected($status === 'normal')>ปกติ</option>
-                <option value="late" @selected($status === 'late')>มาสาย</option>
-                <option value="early_leave" @selected($status === 'early_leave')>กลับก่อน</option>
-                <option value="late_and_early_leave" @selected($status === 'late_and_early_leave')>สายและกลับก่อน</option>
-                <option value="incomplete" @selected($status === 'incomplete')>ข้อมูลไม่ครบ</option>
-            </select>
-
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">
-                    ค้นหา
-                </button>
-
-                <a href="{{ route('attendance-summaries.index') }}"
-                   class="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
-                    ล้าง
-                </a>
-            </div>
-        </form>
-    </div>
-
     @php
-        $statusLabels = [
+        // Declared here, not inside the filter slot: a component slot has its
+        // own scope, and the table below needs the same labels.
+        $statuses = [
             'normal' => 'ปกติ',
             'late' => 'มาสาย',
             'early_leave' => 'กลับก่อน',
             'late_and_early_leave' => 'สายและกลับก่อน',
             'incomplete' => 'ข้อมูลไม่ครบ',
-            'absent' => 'ไม่พบสแกน',
-            'off' => 'วันหยุด',
-        ];
-
-        $statusClasses = [
-            'normal' => 'bg-green-100 text-green-800',
-            'late' => 'bg-yellow-100 text-yellow-800',
-            'early_leave' => 'bg-orange-100 text-orange-800',
-            'late_and_early_leave' => 'bg-red-100 text-red-800',
-            'incomplete' => 'bg-gray-100 text-gray-800',
-            'absent' => 'bg-red-100 text-red-800',
-            'off' => 'bg-gray-100 text-gray-800',
         ];
     @endphp
 
-    <div class="overflow-hidden rounded bg-white shadow">
-        <table class="w-full border-collapse">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="border px-4 py-2 text-left">วันที่</th>
-                    <th class="border px-4 py-2 text-left">บุคลากร</th>
-                    <th class="border px-4 py-2 text-left">หน่วยงาน</th>
-                    <th class="border px-4 py-2 text-left">เวร</th>
-                    <th class="border px-4 py-2 text-center">เวลาเข้า</th>
-                    <th class="border px-4 py-2 text-center">เวลาออก</th>
-                    <th class="border px-4 py-2 text-center">เวลาทำงาน</th>
-                    <th class="border px-4 py-2 text-center">มาสาย</th>
-                    <th class="border px-4 py-2 text-center">กลับก่อน</th>
-                    <th class="border px-4 py-2 text-center">สถานะ</th>
-                    <th class="border px-4 py-2 text-left">หมายเหตุ</th>
-                </tr>
-            </thead>
+    <x-page-header title="สรุปเวลาทำงานรายวัน" subtitle="สรุปเวลาเข้าออกงานจากข้อมูลเครื่องสแกนนิ้วมือ">
+        <x-btn :href="route('attendance-summaries.dashboard')" variant="secondary" icon="chart">Dashboard</x-btn>
+        <x-btn :href="route('attendance-logs.index')" variant="secondary" icon="clock">ข้อมูลเวลาสแกน</x-btn>
 
-            <tbody>
-                @forelse ($summaries as $summary)
-                    <tr>
-                        <td class="border px-4 py-2 whitespace-nowrap">
-                            {{ $summary->work_date?->format('Y-m-d') }}
-                        </td>
+        <x-btn :href="route('attendance-summaries.print', request()->query())" target="_blank"
+               variant="secondary" icon="document">พิมพ์รายงาน</x-btn>
 
-                        <td class="border px-4 py-2">
-                            {{ $summary->employee?->employee_code }}
-                            <div class="text-xs text-gray-500">
-                                {{ $summary->employee?->full_name ?? '-' }}
-                            </div>
-                        </td>
+        @can('attendance.import')
+            <x-btn :href="route('attendance-summaries.generate-form')" icon="refresh">สร้างสรุปเวลา</x-btn>
+        @endcan
+    </x-page-header>
 
-                        <td class="border px-4 py-2">
-                            {{ $summary->employee?->department?->name ?? '-' }}
-                        </td>
+    <x-filter-bar :action="route('attendance-summaries.index')">
+        <x-form.field label="ค้นหา" class="min-w-56 flex-1">
+            <x-form.input name="search" :value="$search" placeholder="รหัส / ชื่อบุคลากร / หน่วยงาน" />
+        </x-form.field>
 
-                        <td class="border px-4 py-2">
-                            @if ($summary->dutySchedule)
-                                {{ $summary->dutySchedule->shiftType?->name ?? '-' }}
-                                <div class="text-xs text-gray-500">
-                                    {{ $summary->dutySchedule->start_at?->format('H:i') }}
-                                    -
-                                    {{ $summary->dutySchedule->end_at?->format('H:i') }}
-                                </div>
-                            @else
-                                <span class="text-gray-400">ไม่ได้ผูกตารางเวร</span>
-                            @endif
-                        </td>
+        <x-form.field label="ตั้งแต่วันที่">
+            <x-form.input type="date" name="date_from" :value="$dateFrom" />
+        </x-form.field>
 
-                        <td class="border px-4 py-2 text-center whitespace-nowrap">
-                            {{ $summary->first_in_at?->format('H:i:s') ?? '-' }}
+        <x-form.field label="ถึงวันที่">
+            <x-form.input type="date" name="date_to" :value="$dateTo" />
+        </x-form.field>
 
-                            @if ($summary->expected_in_time)
-                                <div class="text-xs text-gray-500">
-                                    กำหนด {{ \Carbon\Carbon::parse($summary->expected_in_time)->format('H:i') }}
-                                </div>
-                            @endif
-                        </td>
+        <x-form.field label="สถานะ">
+            <x-form.select name="status" class="w-44">
+                <option value="">ทุกสถานะ</option>
 
-                        <td class="border px-4 py-2 text-center whitespace-nowrap">
-                            {{ $summary->last_out_at?->format('H:i:s') ?? '-' }}
+                @foreach ($statuses as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </x-form.select>
+        </x-form.field>
+    </x-filter-bar>
 
-                            @if ($summary->expected_out_time)
-                                <div class="text-xs text-gray-500">
-                                    กำหนด {{ \Carbon\Carbon::parse($summary->expected_out_time)->format('H:i') }}
-                                </div>
-                            @endif
-                        </td>
+    <x-data-table>
+        <x-slot:head>
+            <x-data-table.th>วันที่</x-data-table.th>
+            <x-data-table.th>บุคลากร</x-data-table.th>
+            <x-data-table.th>หน่วยงาน</x-data-table.th>
+            <x-data-table.th>เวร</x-data-table.th>
+            <x-data-table.th align="center">เวลาเข้า</x-data-table.th>
+            <x-data-table.th align="center">เวลาออก</x-data-table.th>
+            <x-data-table.th align="center">เวลาทำงาน</x-data-table.th>
+            <x-data-table.th align="center">มาสาย</x-data-table.th>
+            <x-data-table.th align="center">กลับก่อน</x-data-table.th>
+            <x-data-table.th align="center">สถานะ</x-data-table.th>
+            <x-data-table.th>หมายเหตุ</x-data-table.th>
+        </x-slot:head>
 
-                        <td class="border px-4 py-2 text-center">
-                            {{ $summary->work_hours }}
-                        </td>
+        @forelse ($summaries as $summary)
+            <x-data-table.row>
+                <x-data-table.td class="whitespace-nowrap tabular-nums">{{ $summary->work_date?->format('Y-m-d') }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($summary->late_minutes > 0)
-                                <span class="font-semibold text-yellow-700">
-                                    {{ $summary->late_minutes }} นาที
-                                </span>
-                            @else
-                                -
-                            @endif
-                        </td>
+                <x-data-table.td>
+                    <div class="font-medium text-slate-900">{{ $summary->employee?->employee_code }}</div>
+                    <div class="mt-0.5 text-xs text-slate-500">{{ $summary->employee?->full_name ?? '-' }}</div>
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            @if ($summary->early_leave_minutes > 0)
-                                <span class="font-semibold text-orange-700">
-                                    {{ $summary->early_leave_minutes }} นาที
-                                </span>
-                            @else
-                                -
-                            @endif
-                        </td>
+                <x-data-table.td>{{ $summary->employee?->department?->name ?? '-' }}</x-data-table.td>
 
-                        <td class="border px-4 py-2 text-center">
-                            <span class="rounded px-2 py-1 text-xs {{ $statusClasses[$summary->status] ?? 'bg-gray-100 text-gray-800' }}">
-                                {{ $statusLabels[$summary->status] ?? $summary->status }}
-                            </span>
-                        </td>
+                <x-data-table.td>
+                    @if ($summary->dutySchedule)
+                        <div>{{ $summary->dutySchedule->shiftType?->name ?? '-' }}</div>
+                        <div class="mt-0.5 text-xs text-slate-500 tabular-nums">
+                            {{ $summary->dutySchedule->start_at?->format('H:i') }} –
+                            {{ $summary->dutySchedule->end_at?->format('H:i') }}
+                        </div>
+                    @else
+                        <span class="text-slate-400">ไม่ได้ผูกตารางเวร</span>
+                    @endif
+                </x-data-table.td>
 
-                        <td class="border px-4 py-2">
-                            {{ $summary->remark ?? '-' }}
+                <x-data-table.td align="center" class="whitespace-nowrap tabular-nums">
+                    {{ $summary->first_in_at?->format('H:i:s') ?? '-' }}
 
-                            @if ($summary->generated_at)
-                                <div class="text-xs text-gray-500">
-                                    สร้างเมื่อ {{ $summary->generated_at->format('Y-m-d H:i') }}
-                                </div>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="11" class="border px-4 py-6 text-center text-gray-500">
-                            ยังไม่มีข้อมูลสรุปเวลาทำงาน
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                    @if ($summary->expected_in_time)
+                        <div class="mt-0.5 text-xs text-slate-500">
+                            กำหนด {{ \Carbon\Carbon::parse($summary->expected_in_time)->format('H:i') }}
+                        </div>
+                    @endif
+                </x-data-table.td>
 
-    <div class="mt-4">
-        {{ $summaries->links() }}
-    </div>
+                <x-data-table.td align="center" class="whitespace-nowrap tabular-nums">
+                    {{ $summary->last_out_at?->format('H:i:s') ?? '-' }}
+
+                    @if ($summary->expected_out_time)
+                        <div class="mt-0.5 text-xs text-slate-500">
+                            กำหนด {{ \Carbon\Carbon::parse($summary->expected_out_time)->format('H:i') }}
+                        </div>
+                    @endif
+                </x-data-table.td>
+
+                <x-data-table.td align="center" class="tabular-nums">{{ $summary->work_hours }}</x-data-table.td>
+
+                <x-data-table.td align="center">
+                    @if ($summary->late_minutes > 0)
+                        <span class="font-semibold text-amber-600">{{ $summary->late_minutes }} นาที</span>
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
+
+                <x-data-table.td align="center">
+                    @if ($summary->early_leave_minutes > 0)
+                        <span class="font-semibold text-orange-600">{{ $summary->early_leave_minutes }} นาที</span>
+                    @else
+                        <span class="text-slate-400">-</span>
+                    @endif
+                </x-data-table.td>
+
+                <x-data-table.td align="center">
+                    @php
+                        $tone = match ($summary->status) {
+                            'normal' => 'success',
+                            'late', 'early_leave' => 'warning',
+                            'late_and_early_leave' => 'danger',
+                            'absent' => 'danger',
+                            default => 'slate',
+                        };
+                    @endphp
+
+                    <x-badge :tone="$tone" dot>{{ $statuses[$summary->status] ?? $summary->status }}</x-badge>
+                </x-data-table.td>
+
+                <x-data-table.td class="text-xs text-slate-500">{{ $summary->remark ?? '-' }}</x-data-table.td>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty :colspan="11" icon="clock" title="ไม่พบสรุปเวลาทำงาน"
+                                description="ลองเปลี่ยนช่วงวันที่ หรือสร้างสรุปเวลาจากข้อมูลสแกน">
+                @can('attendance.import')
+                    <x-btn :href="route('attendance-summaries.generate-form')">สร้างสรุปเวลา</x-btn>
+                @endcan
+            </x-data-table.empty>
+        @endforelse
+    </x-data-table>
+
+    <div class="mt-4">{{ $summaries->links() }}</div>
 </x-layouts.app>

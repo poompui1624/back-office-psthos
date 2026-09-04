@@ -1,0 +1,8 @@
+{
+    "endpoint": "https://backoffice.example.hospital/api/agent/computer-inventory",
+    "token": "hospital-agent-REPLACE-WITH-THE-TOKEN-SHOWN-ONCE-ON-CREATION",
+    "timeout_seconds": 30,
+    "max_attempts": 3,
+    "collect_software": true,
+    "log_path": ""
+}

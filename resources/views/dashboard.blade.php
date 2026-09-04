@@ -1,261 +1,263 @@
-<x-layouts.app title="Dashboard">
-    @php
-        $user = auth()->user();
-        $hospitalName = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
+<x-layouts.app title="Executive Dashboard" subtitle="ภาพรวม KPI งานบุคคล เวร พัสดุ และการแจ้งเตือน">
+    <div class="space-y-6">
+        {{-- Hero --}}
+        <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 px-6 py-7 text-white shadow-xl shadow-brand-500/20 sm:px-8 sm:py-8">
+            <div class="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10"></div>
+            <div class="pointer-events-none absolute -bottom-28 right-24 h-64 w-64 rounded-full bg-white/5"></div>
 
-        $can = fn (string $permission): bool => $user?->can($permission) ?? false;
-        $modelCount = fn (string $model): int => class_exists($model) ? $model::count() : 0;
+            <div class="relative">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-2xl font-bold sm:text-3xl">
+                        {{ $greeting }}, {{ $user?->name }} <span class="inline-block">👋</span>
+                    </h2>
 
-        $pendingApprovals = class_exists(\App\Models\ApprovalRequest::class)
-            ? \App\Models\ApprovalRequest::where('status', 'pending')->count()
-            : 0;
-        $pendingLeaveRequests = class_exists(\App\Models\LeaveRequest::class)
-            ? \App\Models\LeaveRequest::where('status', 'pending')->count()
-            : 0;
-        $activeRepairRequests = class_exists(\App\Models\RepairRequest::class)
-            ? \App\Models\RepairRequest::whereIn('status', ['new', 'in_progress'])->count()
-            : 0;
-        $todayLeaveRequests = class_exists(\App\Models\LeaveRequest::class)
-            ? \App\Models\LeaveRequest::where('status', 'approved')
-                ->whereDate('start_date', '<=', now()->toDateString())
-                ->whereDate('end_date', '>=', now()->toDateString())
-                ->count()
-            : 0;
-        $monthlyLateSummaries = class_exists(\App\Models\AttendanceDailySummary::class)
-            ? \App\Models\AttendanceDailySummary::where('status', 'late')
-                ->whereBetween('work_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
-                ->count()
-            : 0;
-
-        $overviewCards = [
-            [
-                'label' => 'บุคลากร',
-                'value' => $modelCount(\App\Models\Employee::class),
-                'href' => Route::has('employees.index') ? route('employees.index') : null,
-                'permission' => 'employee.view',
-                'tone' => 'border-sky-200 bg-sky-50 text-sky-900',
-            ],
-            [
-                'label' => 'ผู้ใช้งาน',
-                'value' => $modelCount(\App\Models\User::class),
-                'href' => Route::has('users.index') ? route('users.index') : null,
-                'permission' => 'user.view',
-                'tone' => 'border-indigo-200 bg-indigo-50 text-indigo-900',
-            ],
-            [
-                'label' => 'พัสดุ',
-                'value' => $modelCount(\App\Models\Asset::class),
-                'href' => Route::has('assets.index') ? route('assets.index') : null,
-                'permission' => 'asset.view',
-                'tone' => 'border-emerald-200 bg-emerald-50 text-emerald-900',
-            ],
-            [
-                'label' => 'คอมพิวเตอร์',
-                'value' => $modelCount(\App\Models\Computer::class),
-                'href' => Route::has('computers.index') ? route('computers.index') : null,
-                'permission' => 'computer.view',
-                'tone' => 'border-violet-200 bg-violet-50 text-violet-900',
-            ],
-        ];
-
-        $priorityItems = [
-            [
-                'label' => 'รายการรออนุมัติ',
-                'value' => $pendingApprovals,
-                'href' => Route::has('approvals.index') ? route('approvals.index') : null,
-                'permission' => 'approval.view',
-                'tone' => 'border-amber-200 bg-amber-50 text-amber-900',
-            ],
-            [
-                'label' => 'คำขอลารออนุมัติ',
-                'value' => $pendingLeaveRequests,
-                'href' => Route::has('leave-requests.index') ? route('leave-requests.index', ['status' => 'pending']) : null,
-                'permission' => 'leave.view',
-                'tone' => 'border-orange-200 bg-orange-50 text-orange-900',
-            ],
-            [
-                'label' => 'งานซ่อมที่ยังเปิดอยู่',
-                'value' => $activeRepairRequests,
-                'href' => Route::has('repair-requests.index') ? route('repair-requests.index') : null,
-                'permission' => 'repair.view',
-                'tone' => 'border-rose-200 bg-rose-50 text-rose-900',
-            ],
-            [
-                'label' => 'บุคลากรลาวันนี้',
-                'value' => $todayLeaveRequests,
-                'href' => Route::has('leave-requests.calendar') ? route('leave-requests.calendar') : null,
-                'permission' => 'leave.view',
-                'tone' => 'border-teal-200 bg-teal-50 text-teal-900',
-            ],
-        ];
-
-        $quickActions = [
-            ['label' => 'เพิ่มบุคลากร', 'href' => Route::has('employees.create') ? route('employees.create') : null, 'permission' => 'employee.create'],
-            ['label' => 'แจ้งซ่อมใหม่', 'href' => Route::has('repair-requests.create') ? route('repair-requests.create') : null, 'permission' => 'repair.create'],
-            ['label' => 'ยื่นคำขอลา', 'href' => Route::has('leave-requests.create') ? route('leave-requests.create') : null, 'permission' => 'leave.create'],
-            ['label' => 'จองห้องประชุม', 'href' => Route::has('meeting-bookings.create') ? route('meeting-bookings.create') : null, 'permission' => 'meeting.create'],
-            ['label' => 'สร้างตารางเวร', 'href' => Route::has('duty-schedules.bulk-create') ? route('duty-schedules.bulk-create') : null, 'permission' => 'duty.create'],
-            ['label' => 'นำเข้าเวลา', 'href' => Route::has('attendance-logs.import-form') ? route('attendance-logs.import-form') : null, 'permission' => 'attendance.import'],
-        ];
-
-        $moduleLinks = [
-            ['label' => 'บุคลากร', 'description' => 'ข้อมูลแผนก ตำแหน่ง บุคลากร และผู้ใช้งาน', 'href' => Route::has('employees.index') ? route('employees.index') : null, 'permission' => 'employee.view'],
-            ['label' => 'การลา', 'description' => 'คำขอลา ปฏิทินลา และการอนุมัติ', 'href' => Route::has('leave-requests.dashboard') ? route('leave-requests.dashboard') : null, 'permission' => 'leave.view'],
-            ['label' => 'แจ้งซ่อม', 'description' => 'รับงาน ติดตามสถานะ และดูบอร์ดงานซ่อม', 'href' => Route::has('repair-requests.kanban') ? route('repair-requests.kanban') : null, 'permission' => 'repair.view'],
-            ['label' => 'เวลาเข้างาน', 'description' => 'นำเข้าเวลา สรุปเวลา และรายงานประจำเดือน', 'href' => Route::has('attendance-summaries.dashboard') ? route('attendance-summaries.dashboard') : null, 'permission' => 'attendance.view'],
-            ['label' => 'พัสดุ', 'description' => 'ทะเบียนพัสดุ หมวดหมู่ และการโอนย้าย', 'href' => Route::has('assets.index') ? route('assets.index') : null, 'permission' => 'asset.view'],
-            ['label' => 'คอมพิวเตอร์และซอฟต์แวร์', 'description' => 'ทะเบียนเครื่อง Agent และ License', 'href' => Route::has('software-inventory.index') ? route('software-inventory.index') : null, 'permission' => 'software.view'],
-            ['label' => 'เงินเดือน', 'description' => 'รอบเงินเดือน โปรไฟล์เงินเดือน และสลิป', 'href' => Route::has('payroll-periods.index') ? route('payroll-periods.index') : null, 'permission' => 'payroll.view'],
-            ['label' => 'ห้องประชุม', 'description' => 'จองห้อง อนุมัติ และพิมพ์ใบจอง', 'href' => Route::has('meeting-bookings.index') ? route('meeting-bookings.index') : null, 'permission' => 'meeting.view'],
-            ['label' => 'เอกสาร ITA', 'description' => 'จัดการเอกสาร MOIT และหน้าสาธารณะ', 'href' => Route::has('ita.documents.index') ? route('ita.documents.index') : null, 'permission' => 'ita.view'],
-        ];
-
-        $visibleQuickActions = collect($quickActions)->filter(fn ($item) => $item['href'] && $can($item['permission']));
-        $visibleModules = collect($moduleLinks)->filter(fn ($item) => $item['href'] && $can($item['permission']));
-    @endphp
-
-    <div class="flex w-full flex-col gap-6">
-        <section class="rounded-lg border border-gray-200 bg-white px-5 py-5 shadow-sm">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">ยินดีต้อนรับ {{ $user?->name }}</p>
-                    <h1 class="mt-1 text-2xl font-bold text-gray-950">Dashboard</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ $hospitalName }}</p>
+                    <span class="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold ring-1 ring-white/25">
+                        ขอบเขต: {{ $scopeLabel }}
+                    </span>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
-                    @if (Route::has('exports.dashboard-summary'))
-                        <a href="{{ route('exports.dashboard-summary') }}"
-                           class="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
-                            Export Excel
-                        </a>
-                    @endif
+                <p class="mt-2 max-w-3xl text-sm leading-relaxed text-white/85">
+                    ภาพรวม{{ $hospitalName }} วันที่ {{ now()->format('d/m/') . thai_year((int) now()->year) }}
+                    — ตัวเลขทั้งหมดในหน้านี้จำกัดตามสิทธิ์การเข้าถึงของคุณ
+                </p>
 
-                    @if (Route::has('notifications.index'))
-                        <a href="{{ route('notifications.index') }}"
-                           class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
-                            การแจ้งเตือน
-                        </a>
-                    @endif
-                </div>
-            </div>
-        </section>
-
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach ($overviewCards as $card)
-                @if ($card['href'] && $can($card['permission']))
-                    <a href="{{ $card['href'] }}"
-                       class="rounded-lg border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md {{ $card['tone'] }}">
-                        <div class="text-sm font-medium opacity-80">{{ $card['label'] }}</div>
-                        <div class="mt-3 text-3xl font-bold">{{ number_format($card['value']) }}</div>
-                        <div class="mt-3 text-sm font-semibold">เปิดดูรายการ</div>
-                    </a>
-                @endif
-            @endforeach
-        </section>
-
-        <section class="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-950">งานที่ควรติดตาม</h2>
-                        <p class="mt-1 text-sm text-gray-500">รายการสำคัญที่ควรเห็นก่อนเริ่มงานวันนี้</p>
-                    </div>
-
-                    @can('attendance.view')
-                        <div class="hidden rounded-md border border-gray-200 px-3 py-2 text-right sm:block">
-                            <div class="text-xs text-gray-500">มาสายเดือนนี้</div>
-                            <div class="text-lg font-bold text-gray-950">{{ number_format($monthlyLateSummaries) }}</div>
+                <div class="mt-6 flex flex-wrap gap-x-10 gap-y-4">
+                    @foreach ($heroStats as $stat)
+                        <div>
+                            <div class="text-3xl font-bold leading-none sm:text-4xl">{{ $stat['value'] }}</div>
+                            <div class="mt-1.5 text-xs text-white/75">{{ $stat['label'] }}</div>
                         </div>
-                    @endcan
-                </div>
-
-                <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                    @foreach ($priorityItems as $item)
-                        @if ($item['href'] && $can($item['permission']))
-                            <a href="{{ $item['href'] }}"
-                               class="rounded-lg border p-4 transition hover:shadow-sm {{ $item['tone'] }}">
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="text-sm font-semibold">{{ $item['label'] }}</div>
-                                    <div class="text-2xl font-bold">{{ number_format($item['value']) }}</div>
-                                </div>
-                            </a>
-                        @endif
                     @endforeach
                 </div>
-            </div>
 
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="text-lg font-bold text-gray-950">ทางลัด</h2>
-                <p class="mt-1 text-sm text-gray-500">งานที่ใช้บ่อยตามสิทธิ์ของคุณ</p>
+                @php
+                    $actions = collect($quickActions)->filter(fn ($a) => $a['href'] && auth()->user()?->can($a['permission']));
+                @endphp
 
-                <div class="mt-5 grid gap-2">
-                    @forelse ($visibleQuickActions as $action)
-                        <a href="{{ $action['href'] }}"
-                           class="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-800 transition hover:border-gray-400 hover:bg-gray-50">
-                            <span>{{ $action['label'] }}</span>
-                            <span class="text-gray-400">›</span>
-                        </a>
-                    @empty
-                        <div class="rounded-md border border-dashed border-gray-300 px-4 py-5 text-sm text-gray-500">
-                            ยังไม่มีทางลัดสำหรับสิทธิ์ผู้ใช้นี้
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </section>
-
-        <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                    <h2 class="text-lg font-bold text-gray-950">ระบบงานหลัก</h2>
-                    <p class="mt-1 text-sm text-gray-500">เลือกโมดูลที่ต้องการทำงานต่อ</p>
-                </div>
-
-                @if (Route::has('exports.table'))
-                    <div class="text-sm text-gray-500">รายงาน Excel อยู่ในแต่ละโมดูล</div>
+                @if ($actions->isNotEmpty())
+                    <div class="mt-7 flex flex-wrap gap-2">
+                        @foreach ($actions as $action)
+                            <a href="{{ $action['href'] }}"
+                               class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/25 transition hover:bg-white/25">
+                                <x-icon :name="$action['icon']" class="h-4 w-4" />
+                                {{ $action['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
                 @endif
             </div>
+        </section>
 
-            <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                @forelse ($visibleModules as $module)
-                    <a href="{{ $module['href'] }}"
-                       class="rounded-lg border border-gray-200 p-4 transition hover:border-gray-400 hover:bg-gray-50">
-                        <div class="font-bold text-gray-950">{{ $module['label'] }}</div>
-                        <div class="mt-1 text-sm leading-6 text-gray-600">{{ $module['description'] }}</div>
-                    </a>
-                @empty
-                    <div class="rounded-md border border-dashed border-gray-300 p-5 text-sm text-gray-500">
-                        ยังไม่มีโมดูลที่เปิดให้ใช้งานสำหรับสิทธิ์ผู้ใช้นี้
+        {{-- KPI cards --}}
+        @php
+            $visibleCards = collect($statCards)->filter(fn ($c) => auth()->user()?->can($c['permission']));
+        @endphp
+
+        @if ($visibleCards->isNotEmpty())
+            <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                @foreach ($visibleCards as $card)
+                    <x-stat-card
+                        :label="$card['label']"
+                        :value="$card['value']"
+                        :icon="$card['icon']"
+                        :tone="$card['tone']"
+                        :delta="$card['delta'] ?? null"
+                        :helper="$card['helper'] ?? null"
+                        :href="$card['href']"
+                        :featured="$card['featured'] ?? false" />
+                @endforeach
+            </section>
+        @endif
+
+        {{-- Alerts --}}
+        @php
+            $visibleAlerts = collect($alertCards)->filter(fn ($a) => auth()->user()?->can($a['permission']));
+        @endphp
+
+        @if ($visibleAlerts->isNotEmpty())
+            <section>
+                <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+                    <x-icon name="bell" class="h-4 w-4 text-amber-500" />
+                    ต้องติดตาม
+                </h3>
+
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($visibleAlerts as $alert)
+                        <a @if ($alert['href']) href="{{ $alert['href'] }}" @endif
+                           class="card group flex items-center gap-4 border-l-4 p-4 transition hover:-translate-y-0.5"
+                           style="border-left-color: {{ $alert['accent'] }}">
+                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                                 style="background: {{ $alert['accent'] }}1a; color: {{ $alert['accent'] }}">
+                                <x-icon :name="$alert['icon']" />
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate text-xs font-semibold text-slate-500">{{ $alert['label'] }}</div>
+
+                                <div class="mt-0.5 flex items-baseline gap-1.5">
+                                    <span class="text-2xl font-bold text-slate-900">{{ number_format($alert['count']) }}</span>
+                                    <span class="text-xs text-slate-500">{{ $alert['unit'] }}</span>
+                                </div>
+
+                                <div class="mt-0.5 truncate text-[11px] text-slate-400">{{ $alert['note'] }}</div>
+                            </div>
+
+                            <x-icon name="chevron-right" class="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Donuts --}}
+        <section class="grid gap-6 xl:grid-cols-2">
+            @can('employee.view')
+                <div class="card card-pad">
+                    <div class="mb-5 flex items-center justify-between gap-3">
+                        <h3 class="section-title">บุคลากรตามหน่วยงาน</h3>
+                        <span class="muted text-xs">เฉพาะสถานะปฏิบัติงาน</span>
                     </div>
-                @endforelse
-            </div>
-        </section>
 
-        <section class="grid gap-4 md:grid-cols-3">
-            @can('department.view')
-                <a href="{{ route('departments.index') }}"
-                   class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-400">
-                    <div class="text-sm text-gray-500">หน่วยงาน</div>
-                    <div class="mt-2 text-2xl font-bold text-gray-950">{{ number_format($modelCount(\App\Models\Department::class)) }}</div>
-                </a>
+                    <x-chart.donut :segments="$employeesByDepartment" caption="คน" />
+                </div>
             @endcan
 
-            @can('position.view')
-                <a href="{{ route('positions.index') }}"
-                   class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-400">
-                    <div class="text-sm text-gray-500">ตำแหน่ง</div>
-                    <div class="mt-2 text-2xl font-bold text-gray-950">{{ number_format($modelCount(\App\Models\Position::class)) }}</div>
-                </a>
-            @endcan
+            @can('leave.view')
+                <div class="card card-pad">
+                    <div class="mb-5 flex items-center justify-between gap-3">
+                        <h3 class="section-title">สถานะใบลาปีนี้</h3>
+                        <span class="muted text-xs">พ.ศ. {{ thai_year((int) now()->year) }}</span>
+                    </div>
 
-            @can('setting.view')
-                <a href="{{ route('system-settings.index') }}"
-                   class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-400">
-                    <div class="text-sm text-gray-500">ตั้งค่าระบบ</div>
-                    <div class="mt-2 text-base font-bold text-gray-950">ข้อมูลโรงพยาบาลและค่ากลาง</div>
-                </a>
+                    <x-chart.donut :segments="$leaveByStatus" caption="ใบลา" />
+                </div>
             @endcan
         </section>
+
+
+        {{-- Trend + department value --}}
+        <section class="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+            @canany(['leave.view', 'duty.view'])
+                <div class="card card-pad">
+                    <div class="mb-4 flex items-center justify-between gap-3">
+                        <h3 class="section-title">แนวโน้ม 12 เดือนย้อนหลัง</h3>
+                        <span class="muted text-xs">วันลา vs จำนวนเวร</span>
+                    </div>
+
+                    <x-chart.line :series="$leaveTrend['series']" :labels="$leaveTrend['labels']" />
+                </div>
+            @endcanany
+
+            @can('asset.view')
+                <div class="card card-pad">
+                    <div class="mb-5 flex items-center justify-between gap-3">
+                        <h3 class="section-title">มูลค่าพัสดุตามหน่วยงาน</h3>
+                        <span class="muted text-xs">Top 6</span>
+                    </div>
+
+                    <x-chart.bar-list :rows="$assetsByDepartment" format="money" empty="ยังไม่มีพัสดุที่บันทึกราคา" />
+                </div>
+            @endcan
+        </section>
+
+        {{-- Expirations + activity --}}
+        <section class="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+            @can('software.view')
+                <div class="card overflow-hidden">
+                    <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <h3 class="section-title">License ที่ใกล้หมดอายุ</h3>
+
+                        <a href="{{ route('software-licenses.index') }}" class="text-xs font-semibold text-brand-600 hover:underline">
+                            ดูทั้งหมด
+                        </a>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50/80 text-left text-xs text-slate-500">
+                                <tr>
+                                    <th class="px-5 py-3 font-semibold sm:px-6">รายการ</th>
+                                    <th class="px-5 py-3 font-semibold">วันหมดอายุ</th>
+                                    <th class="px-5 py-3 text-right font-semibold sm:px-6">สถานะ</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse ($upcomingExpirations as $row)
+                                    <tr class="transition hover:bg-slate-50/70">
+                                        <td class="px-5 py-3 sm:px-6">
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                                                    <x-icon name="key" class="h-[18px] w-[18px]" />
+                                                </div>
+                                                <span class="font-medium text-slate-900">{{ $row['name'] }}</span>
+                                            </div>
+                                        </td>
+
+                                        <td class="px-5 py-3 text-slate-600">
+                                            {{ $row['expiry']->format('d/m/') . thai_year((int) $row['expiry']->year) }}
+                                        </td>
+
+                                        <td class="px-5 py-3 text-right sm:px-6">
+                                            <span @class([
+                                                'pill',
+                                                'bg-rose-100 text-rose-700' => $row['tone'] === 'rose',
+                                                'bg-amber-100 text-amber-700' => $row['tone'] === 'amber',
+                                                'bg-slate-100 text-slate-600' => $row['tone'] === 'slate',
+                                            ])>{{ $row['label'] }}</span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-12 text-center text-sm text-slate-500">
+                                            ไม่มี License ที่ใกล้หมดอายุใน 90 วัน
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endcan
+
+            @can('audit.view')
+                <div class="card card-pad">
+                    <div class="mb-5 flex items-center justify-between gap-3">
+                        <h3 class="section-title">ความเคลื่อนไหวล่าสุด</h3>
+
+                        <a href="{{ route('audit-logs.index') }}" class="text-xs font-semibold text-brand-600 hover:underline">
+                            ดูทั้งหมด
+                        </a>
+                    </div>
+
+                    @forelse ($recentActivities as $activity)
+                        <div class="relative flex gap-3 pb-5 last:pb-0">
+                            @unless ($loop->last)
+                                <span class="absolute left-[5px] top-4 h-full w-px bg-slate-200"></span>
+                            @endunless
+
+                            <span class="relative mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white"
+                                  style="background: {{ $activity['tone'] }}"></span>
+
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm text-slate-900">
+                                    <span class="font-semibold">{{ $activity['action'] }}</span>
+                                    {{ $activity['module'] }}
+                                </div>
+
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-slate-500">
+                                    <span>{{ $activity['user'] }}</span>
+                                    <span>&middot;</span>
+                                    <span>{{ $activity['at']?->diffForHumans() }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="py-12 text-center text-sm text-slate-500">ยังไม่มีความเคลื่อนไหว</p>
+                    @endforelse
+                </div>
+            @endcan
+        </section>
+
     </div>
 </x-layouts.app>

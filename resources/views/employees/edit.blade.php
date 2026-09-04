@@ -1,9 +1,18 @@
 <x-layouts.app title="แก้ไขบุคลากร">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">แก้ไขบุคลากร</h1>
-        <p class="text-sm text-gray-600">
-            {{ $employee->employee_code }} - {{ $employee->full_name }}
-        </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold">แก้ไขบุคลากร</h1>
+            <p class="text-sm text-gray-600">
+                {{ $employee->employee_code }} - {{ $employee->full_name }}
+            </p>
+        </div>
+
+        @if (auth()->user()?->can('employee.sensitive.view') || auth()->user()?->can('employee.update'))
+            <a href="{{ route('employees.personnel-profile.edit', $employee) }}"
+               class="inline-flex justify-center rounded bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">
+                ข้อมูล ก.พ.7
+            </a>
+        @endif
     </div>
 
     <div class="rounded bg-white p-6 shadow">

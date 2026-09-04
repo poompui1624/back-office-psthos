@@ -4,169 +4,160 @@
     <meta charset="utf-8">
     <title>สลิปเงินเดือน {{ $payslip->employee?->employee_code }}</title>
 
+    {{--
+        Shared print styles first, then the payslip's own overrides. This file
+        used to declare its own full copy of the shared rules above the include,
+        so both were loaded and the later one silently won.
+    --}}
+    @include('print._document-style')
+
     <style>
+        /* Tuned so a payslip lands on a single A4 sheet. */
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
         body {
-            font-family: Tahoma, Arial, sans-serif;
-            color: #111827;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .page {
-            width: 800px;
-            margin: 0 auto;
-            padding: 24px;
+            padding: 16px;
+        }
+
+        .document-header {
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .document-logo {
+            margin-bottom: 4px;
+        }
+
+        .document-logo img {
+            height: 62px;
+            max-width: 115px;
+        }
+
+        .document-hospital-name {
+            font-size: 19px;
+        }
+
+        .document-hospital-info {
+            margin-top: 3px;
+            font-size: 12px;
         }
 
         .header {
             text-align: center;
-            border-bottom: 2px solid #111827;
-            padding-bottom: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .title {
-            font-size: 22px;
+            font-size: 19px;
             font-weight: bold;
         }
 
         .subtitle {
-            margin-top: 6px;
+            margin-top: 3px;
             color: #4b5563;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 24px;
-            margin-bottom: 20px;
-        }
-
-        .label {
-            color: #6b7280;
             font-size: 12px;
         }
 
+        .info-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 9px 20px;
+            margin-bottom: 16px;
+        }
+
+        .label {
+            font-size: 11px;
+        }
+
         .value {
-            font-weight: bold;
+            font-size: 13px;
             margin-top: 2px;
         }
 
+        /* The two item tables sit side by side; stacked they were what pushed
+           the signatures onto a second sheet. */
+        .items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
         table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 18px;
+            margin-bottom: 0;
         }
 
-        th, td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
+        th,
+        td {
+            padding: 6px 8px;
+            font-size: 12px;
         }
 
-        th {
-            background: #f3f4f6;
-            text-align: left;
-        }
-
-        .text-right {
-            text-align: right;
+        .item-note {
+            font-size: 10px;
+            color: #6b7280;
         }
 
         .summary {
-            margin-top: 20px;
             border: 2px solid #111827;
-            padding: 16px;
+            padding: 12px 16px;
             text-align: right;
         }
 
         .net {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
         }
 
         .signature-grid {
-            margin-top: 60px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 48px;
-            text-align: center;
+            margin-top: 52px;
+            gap: 56px;
         }
 
         .signature-line {
-            border-top: 1px solid #111827;
             padding-top: 8px;
-        }
-
-        .print-button {
-            margin: 20px auto;
-            width: 800px;
-            text-align: right;
-        }
-
-        .print-button button {
-            padding: 8px 16px;
-            background: #111827;
-            color: white;
-            border: 0;
-            border-radius: 6px;
-            cursor: pointer;
+            font-size: 12px;
         }
 
         @media print {
-            .print-button {
-                display: none;
-            }
-
-            body {
-                margin: 0;
-            }
-
             .page {
                 width: auto;
-                padding: 16px;
+                padding: 0;
+            }
+
+            /* Never split a table or the totals box across sheets. */
+            .items,
+            table,
+            .summary,
+            .signature-grid {
+                break-inside: avoid;
+                page-break-inside: avoid;
             }
         }
     </style>
-    @include('print._document-style')
 </head>
 <body>
     @include('print._document-header')
+
     <div class="print-button">
         <button onclick="window.print()">พิมพ์</button>
     </div>
 
     <div class="page">
+        {{--
+            The logo, hospital name, address, and phone come from
+            print._document-header above, the way the other three print views
+            do it. This block carries only what is specific to a payslip.
+        --}}
         <div class="header">
-            @php
-                $logoUrl = function_exists('hospital_logo_url') ? hospital_logo_url() : null;
-                $hospitalName = function_exists('hospital_name') ? hospital_name() : config('app.name', 'Hospital Backoffice');
-                $hospitalAddress = function_exists('setting') ? setting('hospital.address', '') : '';
-                $hospitalPhone = function_exists('setting') ? setting('hospital.phone', '') : '';
-            @endphp
-
-            @if ($logoUrl)
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <img src="{{ $logoUrl }}"
-                        alt="logo"
-                        style="height: 70px; max-width: 120px; object-fit: contain;">
-                </div>
-            @endif
-
             <div class="title">สลิปเงินเดือน</div>
-            <div class="subtitle">
-                {{ $hospitalName }}
-            </div>
 
-            @if ($hospitalAddress)
-                <div class="subtitle">
-                    {{ $hospitalAddress }}
-                </div>
-            @endif
-
-            @if ($hospitalPhone)
-                <div class="subtitle">
-                    โทร. {{ $hospitalPhone }}
-                </div>
-            @endif
             <div class="subtitle">
                 รอบ {{ $payslip->payrollPeriod?->name }}
                 |
@@ -177,111 +168,77 @@
         </div>
 
         <div class="info-grid">
-            <div>
-                <div class="label">รหัสบุคลากร</div>
-                <div class="value">{{ $payslip->employee?->employee_code ?? '-' }}</div>
-            </div>
-
-            <div>
-                <div class="label">ชื่อ - สกุล</div>
-                <div class="value">{{ $payslip->employee?->full_name ?? '-' }}</div>
-            </div>
-
-            <div>
-                <div class="label">หน่วยงาน</div>
-                <div class="value">{{ $payslip->employee?->department?->name ?? '-' }}</div>
-            </div>
-
-            <div>
-                <div class="label">ตำแหน่ง</div>
-                <div class="value">{{ $payslip->employee?->position?->name ?? '-' }}</div>
-            </div>
-
-            <div>
-                <div class="label">มาสาย</div>
-                <div class="value">{{ $payslip->late_minutes }} นาที</div>
-            </div>
-
-            <div>
-                <div class="label">กลับก่อน</div>
-                <div class="value">{{ $payslip->early_leave_minutes }} นาที</div>
-            </div>
-
-            <div>
-                <div class="label">ขาดงาน / ไม่พบสแกน</div>
-                <div class="value">{{ $payslip->absent_days }} วัน</div>
-            </div>
-
-            <div>
-                <div class="label">วันที่สร้างสลิป</div>
-                <div class="value">{{ $payslip->generated_at?->format('Y-m-d H:i') ?? '-' }}</div>
-            </div>
+            @foreach ([
+                'รหัสบุคลากร' => $payslip->employee?->employee_code,
+                'ชื่อ - สกุล' => $payslip->employee?->full_name,
+                'หน่วยงาน' => $payslip->employee?->department?->name,
+                'ตำแหน่ง' => $payslip->employee?->position?->name,
+                'มาสาย' => $payslip->late_minutes . ' นาที',
+                'กลับก่อน' => $payslip->early_leave_minutes . ' นาที',
+                'ขาดงาน / ไม่พบสแกน' => $payslip->absent_days . ' วัน',
+                'วันที่สร้างสลิป' => $payslip->generated_at?->format('Y-m-d H:i'),
+            ] as $label => $value)
+                <div>
+                    <div class="label">{{ $label }}</div>
+                    <div class="value">{{ $value ?? '-' }}</div>
+                </div>
+            @endforeach
         </div>
 
         @php
-            $incomeItems = $payslip->items->where('type', 'income');
-            $deductionItems = $payslip->items->where('type', 'deduction');
+            $groups = [
+                [
+                    'heading' => 'รายได้',
+                    'items' => $payslip->items->where('type', 'income')->sortBy('sort_order'),
+                    'totalLabel' => 'รวมรายได้',
+                    'total' => $payslip->gross_income,
+                ],
+                [
+                    'heading' => 'รายการหัก',
+                    'items' => $payslip->items->where('type', 'deduction')->sortBy('sort_order'),
+                    'totalLabel' => 'รวมรายการหัก',
+                    'total' => $payslip->total_deduction,
+                ],
+            ];
         @endphp
 
-        <table>
-            <thead>
-                <tr>
-                    <th colspan="2">รายได้</th>
-                </tr>
-            </thead>
+        <div class="items">
+            @foreach ($groups as $group)
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">{{ $group['heading'] }}</th>
+                        </tr>
+                    </thead>
 
-            <tbody>
-                @foreach ($incomeItems as $item)
-                    <tr>
-                        <td>
-                            {{ $item->name }}
+                    <tbody>
+                        @forelse ($group['items'] as $item)
+                            <tr>
+                                <td>
+                                    {{ $item->name }}
 
-                            @if ($item->quantity > 1)
-                                <div style="font-size: 12px; color: #6b7280;">
-                                    {{ $item->quantity }} x {{ number_format($item->unit_amount, 2) }}
-                                </div>
-                            @endif
-                        </td>
-                        <td class="text-right">{{ number_format($item->amount, 2) }}</td>
-                    </tr>
-                @endforeach
+                                    @if ($item->quantity > 1)
+                                        <div class="item-note">
+                                            {{ $item->quantity }} x {{ number_format($item->unit_amount, 2) }}
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="text-right">{{ number_format($item->amount, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2" class="text-center">ไม่มีรายการ</td>
+                            </tr>
+                        @endforelse
 
-                <tr>
-                    <td><strong>รวมรายได้</strong></td>
-                    <td class="text-right"><strong>{{ number_format($payslip->gross_income, 2) }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <table>
-            <thead>
-                <tr>
-                    <th colspan="2">รายการหัก</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @foreach ($deductionItems as $item)
-                    <tr>
-                        <td>
-                            {{ $item->name }}
-
-                            @if ($item->quantity > 1)
-                                <div style="font-size: 12px; color: #6b7280;">
-                                    {{ $item->quantity }} x {{ number_format($item->unit_amount, 2) }}
-                                </div>
-                            @endif
-                        </td>
-                        <td class="text-right">{{ number_format($item->amount, 2) }}</td>
-                    </tr>
-                @endforeach
-
-                <tr>
-                    <td><strong>รวมรายการหัก</strong></td>
-                    <td class="text-right"><strong>{{ number_format($payslip->total_deduction, 2) }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
+                        <tr>
+                            <td><strong>{{ $group['totalLabel'] }}</strong></td>
+                            <td class="text-right"><strong>{{ number_format($group['total'], 2) }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            @endforeach
+        </div>
 
         <div class="summary">
             <div>ยอดสุทธิที่ต้องจ่าย</div>

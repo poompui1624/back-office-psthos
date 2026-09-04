@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopesByDepartment;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RepairRequest extends Model
 {
-    use SoftDeletes;
+    use HasFactory, ScopesByDepartment, SoftDeletes;
 
     protected $fillable = [
         'ticket_no',
@@ -72,5 +74,10 @@ class RepairRequest extends Model
     public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function departmentScopePrefix(): string
+    {
+        return 'repair';
     }
 }
