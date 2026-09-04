@@ -52,6 +52,13 @@ const SMOKE_QUERY = [
  * @var array<string, string>
  */
 const SMOKE_MODEL_ALIAS = [
+    // The public-site routes sit under a /site prefix, so their parameters
+    // drop the prefix the model keeps.
+    'banner' => 'SiteBanner',
+    'link' => 'SiteLink',
+    'page' => 'SitePage',
+    'executive' => 'SiteExecutive',
+
     'document' => 'ItaDocument',
     'fiscal_year' => 'ItaFiscalYear',
     'moit_topic' => 'ItaMoitTopic',
@@ -122,7 +129,10 @@ test('every authenticated page renders', function () {
                 break;
             }
 
-            $parameters[$parameter] = $model->getKey();
+            // getRouteKey, not getKey: a model binding on something other
+            // than its primary key — SitePage binds on its key column —
+            // would otherwise be sent an id the route cannot resolve.
+            $parameters[$parameter] = $model->getRouteKey();
         }
 
         if ($missing !== null) {
@@ -144,7 +154,7 @@ test('every authenticated page renders', function () {
         }
 
         if (! in_array($response->status(), [200, 302], true)) {
-            $failures[] = "{$name}: HTTP {$response->status()}";
+            $failures[] = "{$name}: HTTP {$response->status()} at ".route($name, $parameters + $query);
 
             continue;
         }

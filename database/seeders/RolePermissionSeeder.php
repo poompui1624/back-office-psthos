@@ -110,6 +110,9 @@ class RolePermissionSeeder extends Seeder
             'ita.delete',
             'ita.topic.manage',
 
+            'site.view',
+            'site.manage',
+
             'leave.view.own',
             'duty.view.own',
             'attendance.view.own',
@@ -160,6 +163,11 @@ class RolePermissionSeeder extends Seeder
 
         $supervisor = Role::firstOrCreate([
             'name' => 'supervisor',
+            'guard_name' => 'web',
+        ]);
+
+        $publicRelations = Role::firstOrCreate([
+            'name' => 'pr',
             'guard_name' => 'web',
         ]);
 
@@ -247,6 +255,9 @@ class RolePermissionSeeder extends Seeder
             'ita.create',
             'ita.edit',
             'ita.topic.manage',
+
+            'site.view',
+            'site.manage',
             'leave.view.all',
             'duty.view.all',
             'attendance.view.all',
@@ -256,7 +267,6 @@ class RolePermissionSeeder extends Seeder
             'employee.view.all',
 
             'leave.create.any',
-
         ]);
 
         $it->syncPermissions([
@@ -363,6 +373,15 @@ class RolePermissionSeeder extends Seeder
             'payslip.view.own',
             'leave.create.any',
 
+        ]);
+
+        // Keeps the public site current without reaching the rest of the system.
+        $publicRelations->syncPermissions([
+            'dashboard.view',
+            'attachment.upload',
+            'attachment.download',
+            'site.view',
+            'site.manage',
         ]);
 
         $staff->syncPermissions([

@@ -34,6 +34,11 @@ use App\Http\Controllers\RepairRequestController;
 use App\Http\Controllers\SalaryProfileController;
 use App\Http\Controllers\SelfServiceController;
 use App\Http\Controllers\ShiftTypeController;
+use App\Http\Controllers\Site\BannerController as SiteBannerController;
+use App\Http\Controllers\Site\ExecutiveController as SiteExecutiveController;
+use App\Http\Controllers\Site\LinkController as SiteLinkController;
+use App\Http\Controllers\Site\PageController as SitePageController;
+use App\Http\Controllers\SiteHomeController;
 use App\Http\Controllers\SoftwareInventoryController;
 use App\Http\Controllers\SoftwareLicenseController;
 use App\Http\Controllers\SoftwareProductController;
@@ -41,6 +46,18 @@ use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Hospital public site
+|--------------------------------------------------------------------------
+|
+| Open to visitors. Deliberately declared outside the auth group below — a
+| public site behind a login is a failure nobody notices until someone from
+| outside cannot open it.
+|
+*/
+Route::get('/home', [SiteHomeController::class, 'index'])->name('site.home');
+Route::get('/home/{key}', [SiteHomeController::class, 'page'])->name('site.page');
 Route::get('/', function () {
     return auth()->check()
         ? redirect()->route('dashboard')
@@ -316,6 +333,37 @@ Route::middleware(['auth'])->group(function () {
         ->name('meeting-bookings.print');
 
     Route::resource('meeting-bookings', MeetingBookingController::class);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public site content
+    |--------------------------------------------------------------------------
+    |
+    | Edits what visitors see at /home. The pages themselves are seeded and can
+    | only be edited, never created or deleted, since the homepage places them
+    | by a fixed key.
+    |
+    */
+    Route::prefix('site')->name('site.')->group(function () {
+        Route::resource('banners', SiteBannerController::class)
+            ->except(['show'])
+            ->names('banners')
+            ->parameters(['banners' => 'banner']);
+
+        Route::resource('links', SiteLinkController::class)
+            ->except(['show'])
+            ->names('links')
+            ->parameters(['links' => 'link']);
+
+        Route::get('/pages', [SitePageController::class, 'index'])->name('pages.index');
+        Route::get('/pages/{page}/edit', [SitePageController::class, 'edit'])->name('pages.edit');
+        Route::put('/pages/{page}', [SitePageController::class, 'update'])->name('pages.update');
+
+        Route::resource('executives', SiteExecutiveController::class)
+            ->except(['show'])
+            ->names('executives')
+            ->parameters(['executives' => 'executive']);
+    });
 
     Route::get('/exports/dashboard-summary', [ExportController::class, 'dashboardSummary'])
         ->name('exports.dashboard-summary');
