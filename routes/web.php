@@ -35,10 +35,12 @@ use App\Http\Controllers\SalaryProfileController;
 use App\Http\Controllers\SelfServiceController;
 use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\Site\BannerController as SiteBannerController;
+use App\Http\Controllers\Site\DocumentController as SiteDocumentAdminController;
 use App\Http\Controllers\Site\ExecutiveController as SiteExecutiveController;
 use App\Http\Controllers\Site\LinkController as SiteLinkController;
 use App\Http\Controllers\Site\PageController as SitePageController;
 use App\Http\Controllers\Site\PostController as SitePostAdminController;
+use App\Http\Controllers\SiteDocumentController;
 use App\Http\Controllers\SiteHomeController;
 use App\Http\Controllers\SitePostController;
 use App\Http\Controllers\SoftwareInventoryController;
@@ -63,6 +65,9 @@ Route::get('/home/news', [SitePostController::class, 'index'])->name('site.news'
 Route::get('/home/gallery', [SitePostController::class, 'gallery'])->name('site.gallery');
 Route::get('/home/posts/{slug}', [SitePostController::class, 'show'])->name('site.post');
 Route::get('/home/files/{file}', [SitePostController::class, 'download'])->name('site.post.file');
+Route::get('/home/documents', [SiteDocumentController::class, 'index'])->name('site.documents');
+Route::get('/home/documents/{siteDocument}', [SiteDocumentController::class, 'show'])->name('site.document');
+Route::get('/home/documents/{siteDocument}/download', [SiteDocumentController::class, 'download'])->name('site.document.download');
 Route::get('/home/{key}', [SiteHomeController::class, 'page'])->name('site.page');
 Route::get('/', function () {
     return auth()->check()
@@ -375,6 +380,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::delete('/posts/{post}/files/{file}', [SitePostAdminController::class, 'destroyFile'])
             ->name('posts.files.destroy');
+
+        Route::resource('documents', SiteDocumentAdminController::class)
+            ->except(['show'])
+            ->names('documents')
+            ->parameters(['documents' => 'siteDocument']);
 
         Route::resource('executives', SiteExecutiveController::class)
             ->except(['show'])

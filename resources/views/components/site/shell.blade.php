@@ -22,6 +22,7 @@
             ['label' => 'หน้าแรก', 'route' => 'site.home', 'param' => null],
             ['label' => 'ข่าวสารและกิจกรรม', 'route' => 'site.news', 'param' => null],
             ['label' => 'ภาพกิจกรรม', 'route' => 'site.gallery', 'param' => null],
+            ['label' => 'เอกสารเผยแพร่', 'route' => 'site.documents', 'param' => null],
             ['label' => 'ประวัติโรงพยาบาล', 'route' => 'site.page', 'param' => 'history'],
             ['label' => 'วิสัยทัศน์ พันธกิจ', 'route' => 'site.page', 'param' => 'vision'],
             ['label' => 'โครงสร้างผู้บริหาร', 'route' => 'site.page', 'param' => 'structure'],

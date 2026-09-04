@@ -62,6 +62,8 @@ const SMOKE_MODEL_ALIAS = [
     'page' => 'SitePage',
     'executive' => 'SiteExecutive',
 
+    // Two routes use {document}: the ITA one and the public-site one. The
+    // ITA route is nested under /ita, so the prefix tells them apart.
     'document' => 'ItaDocument',
     'fiscal_year' => 'ItaFiscalYear',
     'moit_topic' => 'ItaMoitTopic',

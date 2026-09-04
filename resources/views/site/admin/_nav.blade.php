@@ -4,6 +4,7 @@
         ['label' => 'แบนเนอร์', 'route' => 'site.banners.index', 'active' => 'site.banners.*', 'icon' => 'box'],
         ['label' => 'ข่าวและกิจกรรม', 'route' => 'site.posts.index', 'active' => 'site.posts.*', 'icon' => 'document'],
         ['label' => 'ลิงก์สำคัญ', 'route' => 'site.links.index', 'active' => 'site.links.*', 'icon' => 'external-link'],
+        ['label' => 'เอกสารเผยแพร่', 'route' => 'site.documents.index', 'active' => 'site.documents.*', 'icon' => 'clipboard'],
         ['label' => 'ข้อมูลโรงพยาบาล', 'route' => 'site.pages.index', 'active' => 'site.pages.*', 'icon' => 'document'],
         ['label' => 'ผู้บริหาร', 'route' => 'site.executives.index', 'active' => 'site.executives.*', 'icon' => 'users'],
     ];
