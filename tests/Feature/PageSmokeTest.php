@@ -56,6 +56,8 @@ const SMOKE_MODEL_ALIAS = [
     // drop the prefix the model keeps.
     'banner' => 'SiteBanner',
     'post' => 'SitePost',
+    'file' => 'SitePostFile',
+    'image' => 'SitePostImage',
     'link' => 'SiteLink',
     'page' => 'SitePage',
     'executive' => 'SiteExecutive',

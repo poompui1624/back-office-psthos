@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\SitePost;
+use App\Models\SitePostFile;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 /**
  * Public reading of news, activities, and knowledge articles.
@@ -39,7 +43,7 @@ class SitePostController extends Controller
 
     public function show(string $slug): View
     {
-        $post = SitePost::live()->where('slug', $slug)->with('images')->first();
+        $post = SitePost::live()->where('slug', $slug)->with(['images', 'files'])->first();
 
         abort_unless($post, 404);
 
@@ -63,6 +67,64 @@ class SitePostController extends Controller
                 ->with('images')
                 ->paginate(9),
         ]);
+    }
+
+    /**
+     * Serve an attachment from a published post.
+     *
+     * The file lives on the public disk, but the link is served through here so
+     * a document attached to a draft — or to a post scheduled for later — is
+     * not reachable just because someone guessed the storage path.
+     */
+    public function download(SitePostFile $file)
+    {
+        $post = $file->post;
+
+        abort_unless(
+            $post
+            && $post->is_published
+            && $post->published_at
+            && $post->published_at->isPast(),
+            404
+        );
+
+        abort_unless(Storage::disk('public')->exists($file->file_path), 404);
+
+        $key = $file->getKey();
+
+        defer(fn () => SitePostFile::whereKey($key)->increment('download_count'));
+
+        return Storage::disk('public')->download(
+            $file->file_path,
+            $file->file_original_name,
+            ['Content-Disposition' => $this->contentDisposition($file)]
+        );
+    }
+
+    /**
+     * A Content-Disposition that survives a Thai filename.
+     *
+     * The header carries the real name in filename*, which every current
+     * browser reads, plus a plain ASCII fallback for anything that does not.
+     * Left to itself that fallback comes out as bare ".pdf", because
+     * transliterating Thai leaves nothing behind.
+     */
+    private function contentDisposition(SitePostFile $file): string
+    {
+        $fallback = Str::ascii($file->file_original_name);
+        $fallback = preg_replace('/[^A-Za-z0-9._-]+/', '-', $fallback) ?? '';
+        $fallback = trim($fallback, '-');
+
+        if ($fallback === '' || str_starts_with($fallback, '.')) {
+            $extension = $file->file_extension ? '.'.$file->file_extension : '';
+            $fallback = 'document-'.$file->getKey().$extension;
+        }
+
+        return HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            $file->file_original_name,
+            $fallback
+        );
     }
 
     /**

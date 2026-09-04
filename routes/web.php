@@ -62,6 +62,7 @@ Route::get('/home', [SiteHomeController::class, 'index'])->name('site.home');
 Route::get('/home/news', [SitePostController::class, 'index'])->name('site.news');
 Route::get('/home/gallery', [SitePostController::class, 'gallery'])->name('site.gallery');
 Route::get('/home/posts/{slug}', [SitePostController::class, 'show'])->name('site.post');
+Route::get('/home/files/{file}', [SitePostController::class, 'download'])->name('site.post.file');
 Route::get('/home/{key}', [SiteHomeController::class, 'page'])->name('site.page');
 Route::get('/', function () {
     return auth()->check()
@@ -371,6 +372,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::delete('/posts/{post}/images/{image}', [SitePostAdminController::class, 'destroyImage'])
             ->name('posts.images.destroy');
+
+        Route::delete('/posts/{post}/files/{file}', [SitePostAdminController::class, 'destroyFile'])
+            ->name('posts.files.destroy');
 
         Route::resource('executives', SiteExecutiveController::class)
             ->except(['show'])

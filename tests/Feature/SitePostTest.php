@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\SitePost;
+use App\Models\SitePostFile;
 use App\Models\SitePostImage;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -228,4 +229,130 @@ test('writing needs the manage permission', function () {
     $this->actingAs(postAuthor('site.view'))
         ->get(route('site.posts.create'))
         ->assertForbidden();
+});
+
+test('a document can be attached and downloaded', function () {
+    Storage::fake('public');
+
+    $this->actingAs(postAuthor('site.manage'))
+        ->post(route('site.posts.store'), [
+            'category' => 'news',
+            'title' => 'ประกาศรับสมัครงาน',
+            'is_published' => '1',
+            'attachments' => [UploadedFile::fake()->create('ประกาศ.pdf', 400, 'application/pdf')],
+        ])
+        ->assertRedirect();
+
+    $file = SitePostFile::firstOrFail();
+
+    expect($file->file_original_name)->toBe('ประกาศ.pdf')
+        ->and($file->file_extension)->toBe('pdf')
+        ->and($file->file_size)->toBeGreaterThan(0);
+
+    Storage::disk('public')->assertExists($file->file_path);
+
+    $response = $this->get(route('site.post.file', $file))->assertOk();
+
+    $disposition = $response->headers->get('content-disposition');
+
+    // Thai transliterates to nothing, so without a fallback the header
+    // would offer a file called ".pdf" to anything not reading filename*.
+    expect($disposition)->toContain("filename*=utf-8''")
+        ->and($disposition)->toContain(rawurlencode('ประกาศ.pdf'))
+        ->and($disposition)->toMatch('/filename="?document-\d+\.pdf"?/');
+});
+
+test('an attachment on a draft cannot be downloaded', function () {
+    Storage::fake('public');
+
+    $draft = SitePost::factory()->draft()->create();
+    $file = SitePostFile::factory()->create(['site_post_id' => $draft->id]);
+
+    // The file sits on the public disk, so this is what stops someone reaching
+    // a document that has not been published yet.
+    $this->get(route('site.post.file', $file))->assertNotFound();
+});
+
+test('an attachment on a post scheduled for later cannot be downloaded', function () {
+    Storage::fake('public');
+
+    $scheduled = SitePost::factory()->scheduled()->create();
+    $file = SitePostFile::factory()->create(['site_post_id' => $scheduled->id]);
+
+    $this->get(route('site.post.file', $file))->assertNotFound();
+});
+
+test('downloading counts the download', function () {
+    Storage::fake('public');
+
+    $post = SitePost::factory()->create();
+    $file = SitePostFile::factory()->create(['site_post_id' => $post->id]);
+
+    Storage::disk('public')->put($file->file_path, 'contents');
+
+    $this->get(route('site.post.file', $file))->assertOk();
+
+    expect($file->refresh()->download_count)->toBe(1);
+});
+
+test('a missing file is a 404 rather than a broken download', function () {
+    Storage::fake('public');
+
+    $post = SitePost::factory()->create();
+    $file = SitePostFile::factory()->create(['site_post_id' => $post->id]);
+
+    // The row exists but the file behind it does not.
+    $this->get(route('site.post.file', $file))->assertNotFound();
+});
+
+test('an attachment cannot be deleted through a post it does not belong to', function () {
+    $postA = SitePost::factory()->create();
+    $postB = SitePost::factory()->create();
+    $file = SitePostFile::factory()->create(['site_post_id' => $postB->id]);
+
+    $this->actingAs(postAuthor('site.manage'))
+        ->delete(route('site.posts.files.destroy', [$postA, $file]))
+        ->assertNotFound();
+
+    expect(SitePostFile::whereKey($file->id)->exists())->toBeTrue();
+});
+
+test('an executable is rejected as an attachment', function () {
+    Storage::fake('public');
+
+    $this->actingAs(postAuthor('site.manage'))
+        ->post(route('site.posts.store'), [
+            'category' => 'news',
+            'title' => 'ทดสอบ',
+            'attachments' => [UploadedFile::fake()->create('payload.exe', 10, 'application/octet-stream')],
+        ])
+        ->assertSessionHasErrors('attachments.0');
+
+    expect(SitePost::count())->toBe(0);
+});
+
+test('the post page lists its attachments', function () {
+    $post = SitePost::factory()->create(['title' => 'ข่าวมีเอกสาร']);
+
+    SitePostFile::factory()->create([
+        'site_post_id' => $post->id,
+        'title' => 'แบบฟอร์มสมัครงาน',
+        'file_size' => 2 * 1048576,
+    ]);
+
+    $this->get(route('site.post', $post->slug))
+        ->assertOk()
+        ->assertSee('เอกสารแนบ')
+        ->assertSee('แบบฟอร์มสมัครงาน')
+        ->assertSee('2.00 MB');
+});
+
+test('file sizes read the same everywhere', function () {
+    // Three models displayed sizes and each had grown its own copy, which had
+    // already drifted on small files.
+    expect(human_file_size(512))->toBe('512 B')
+        ->and(human_file_size(2048))->toBe('2.00 KB')
+        ->and(human_file_size(3 * 1048576))->toBe('3.00 MB')
+        ->and(human_file_size(0))->toBe('0 B')
+        ->and(human_file_size(null))->toBe('0 B');
 });

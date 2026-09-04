@@ -62,6 +62,13 @@
            class="w-full rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700">
 </x-form.field>
 
+<x-form.field label="ไฟล์เอกสารแนบ" name="attachments"
+              hint="PDF, Word, Excel หรือ PowerPoint เลือกได้หลายไฟล์พร้อมกัน สูงสุด 10 ไฟล์ต่อครั้ง ไฟล์ละไม่เกิน 20MB">
+    <input type="file" name="attachments[]" multiple
+           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+           class="w-full rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700">
+</x-form.field>
+
 <div class="space-y-3">
     <x-form.checkbox name="is_published" label="เผยแพร่บนหน้าเว็บ"
                      :checked="old('is_published', $post?->is_published ?? false)" />

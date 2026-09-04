@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\SitePost;
+use App\Models\SitePostFile;
 use App\Models\SitePostImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,7 @@ class PostController extends Controller
             ]);
 
             $this->storeGalleryImages($request, $post);
+            $this->storeAttachments($request, $post);
 
             return $post;
         });
@@ -69,7 +71,7 @@ class PostController extends Controller
     {
         abort_unless(auth()->user()->can('site.manage'), 403);
 
-        $post->load('images');
+        $post->load(['images', 'files']);
 
         return view('site.admin.posts.edit', ['post' => $post]);
     }
@@ -95,6 +97,7 @@ class PostController extends Controller
             $post->update($validated);
 
             $this->storeGalleryImages($request, $post);
+            $this->storeAttachments($request, $post);
         });
 
         return redirect()
@@ -126,6 +129,17 @@ class PostController extends Controller
         return back()->with('success', 'ลบภาพเรียบร้อยแล้ว');
     }
 
+    public function destroyFile(SitePost $post, SitePostFile $file)
+    {
+        abort_unless(auth()->user()->can('site.manage'), 403);
+        abort_unless($file->site_post_id === $post->getKey(), 404);
+
+        $this->deleteFile($file->file_path);
+        $file->delete();
+
+        return back()->with('success', 'ลบไฟล์แนบเรียบร้อยแล้ว');
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -139,6 +153,8 @@ class PostController extends Controller
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'gallery_images' => ['nullable', 'array', 'max:20'],
             'gallery_images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'attachments' => ['nullable', 'array', 'max:10'],
+            'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:20480'],
             'published_at' => ['nullable', 'date'],
             'is_published' => ['nullable', 'boolean'],
             'is_pinned' => ['nullable', 'boolean'],
@@ -153,7 +169,7 @@ class PostController extends Controller
             $validated['published_at'] = now();
         }
 
-        unset($validated['cover_image'], $validated['gallery_images']);
+        unset($validated['cover_image'], $validated['gallery_images'], $validated['attachments']);
 
         return $validated;
     }
@@ -169,6 +185,26 @@ class PostController extends Controller
         foreach ($request->file('gallery_images') as $file) {
             $post->images()->create([
                 'image_path' => $file->store('site/posts', 'public'),
+                'sort_order' => ++$nextOrder,
+            ]);
+        }
+    }
+
+    private function storeAttachments(Request $request, SitePost $post): void
+    {
+        if (! $request->hasFile('attachments')) {
+            return;
+        }
+
+        $nextOrder = (int) $post->files()->max('sort_order');
+
+        foreach ($request->file('attachments') as $file) {
+            $post->files()->create([
+                'file_path' => $file->store('site/posts/files', 'public'),
+                'file_original_name' => $file->getClientOriginalName(),
+                'file_mime' => $file->getClientMimeType(),
+                'file_extension' => mb_strtolower($file->getClientOriginalExtension()),
+                'file_size' => $file->getSize(),
                 'sort_order' => ++$nextOrder,
             ]);
         }

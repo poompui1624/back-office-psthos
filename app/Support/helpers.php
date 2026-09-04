@@ -122,3 +122,27 @@ if (! function_exists('resolve_month_filter')) {
         ];
     }
 }
+
+if (! function_exists('human_file_size')) {
+    /**
+     * A file size in the largest unit that keeps it readable.
+     *
+     * Shared because three models display file sizes and each had grown its own
+     * copy, which had already drifted: one reported a small file as "0.50 KB"
+     * where the other said "512 B".
+     */
+    function human_file_size(int|float|null $bytes): string
+    {
+        $bytes = (int) $bytes;
+
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2).' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2).' KB';
+        }
+
+        return $bytes.' B';
+    }
+}

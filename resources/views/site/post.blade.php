@@ -44,6 +44,35 @@
             </div>
         </article>
 
+        @if ($post->files->isNotEmpty())
+            <section class="mt-8">
+                <h2 class="mb-4 text-lg font-bold text-slate-900">เอกสารแนบ</h2>
+
+                <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+                    @foreach ($post->files as $file)
+                        <a href="{{ route('site.post.file', $file) }}"
+                           class="flex items-center gap-4 border-b border-slate-100 p-4 transition last:border-0 hover:bg-slate-50">
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                                <x-icon :name="$file->icon" class="h-5 w-5" />
+                            </span>
+
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-semibold text-slate-900">{{ $file->display_name }}</span>
+                                <span class="mt-0.5 block text-xs uppercase text-slate-500">
+                                    {{ $file->file_extension }} &middot; {{ $file->file_size_human }}
+                                </span>
+                            </span>
+
+                            <span class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white">
+                                <x-icon name="upload" class="h-4 w-4 rotate-180" />
+                                ดาวน์โหลด
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @if ($post->images->isNotEmpty())
             <section class="mt-8">
                 <h2 class="mb-4 text-lg font-bold text-slate-900">ภาพประกอบ</h2>

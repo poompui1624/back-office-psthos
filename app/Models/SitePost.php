@@ -44,6 +44,11 @@ class SitePost extends Model
         return $this->hasMany(SitePostImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function files(): HasMany
+    {
+        return $this->hasMany(SitePostFile::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
