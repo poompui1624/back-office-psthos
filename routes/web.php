@@ -38,7 +38,9 @@ use App\Http\Controllers\Site\BannerController as SiteBannerController;
 use App\Http\Controllers\Site\ExecutiveController as SiteExecutiveController;
 use App\Http\Controllers\Site\LinkController as SiteLinkController;
 use App\Http\Controllers\Site\PageController as SitePageController;
+use App\Http\Controllers\Site\PostController as SitePostAdminController;
 use App\Http\Controllers\SiteHomeController;
+use App\Http\Controllers\SitePostController;
 use App\Http\Controllers\SoftwareInventoryController;
 use App\Http\Controllers\SoftwareLicenseController;
 use App\Http\Controllers\SoftwareProductController;
@@ -57,6 +59,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/home', [SiteHomeController::class, 'index'])->name('site.home');
+Route::get('/home/news', [SitePostController::class, 'index'])->name('site.news');
+Route::get('/home/gallery', [SitePostController::class, 'gallery'])->name('site.gallery');
+Route::get('/home/posts/{slug}', [SitePostController::class, 'show'])->name('site.post');
 Route::get('/home/{key}', [SiteHomeController::class, 'page'])->name('site.page');
 Route::get('/', function () {
     return auth()->check()
@@ -358,6 +363,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/pages', [SitePageController::class, 'index'])->name('pages.index');
         Route::get('/pages/{page}/edit', [SitePageController::class, 'edit'])->name('pages.edit');
         Route::put('/pages/{page}', [SitePageController::class, 'update'])->name('pages.update');
+
+        Route::resource('posts', SitePostAdminController::class)
+            ->except(['show'])
+            ->names('posts')
+            ->parameters(['posts' => 'post']);
+
+        Route::delete('/posts/{post}/images/{image}', [SitePostAdminController::class, 'destroyImage'])
+            ->name('posts.images.destroy');
 
         Route::resource('executives', SiteExecutiveController::class)
             ->except(['show'])

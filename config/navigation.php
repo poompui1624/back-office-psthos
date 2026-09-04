@@ -93,6 +93,7 @@ return [
         'label' => 'เว็บไซต์โรงพยาบาล',
         'items' => [
             ['label' => 'แบนเนอร์', 'route' => 'site.banners.index', 'active' => 'site.banners.*', 'permission' => 'site.view', 'icon' => 'box'],
+            ['label' => 'ข่าวและกิจกรรม', 'route' => 'site.posts.index', 'active' => 'site.posts.*', 'permission' => 'site.view', 'icon' => 'document'],
             ['label' => 'ลิงก์สำคัญ', 'route' => 'site.links.index', 'active' => 'site.links.*', 'permission' => 'site.view', 'icon' => 'external-link'],
             ['label' => 'ข้อมูลโรงพยาบาล', 'route' => 'site.pages.index', 'active' => 'site.pages.*', 'permission' => 'site.view', 'icon' => 'document'],
             ['label' => 'ผู้บริหาร', 'route' => 'site.executives.index', 'active' => 'site.executives.*', 'permission' => 'site.view', 'icon' => 'users'],

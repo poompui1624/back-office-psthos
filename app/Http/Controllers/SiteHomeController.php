@@ -6,6 +6,7 @@ use App\Models\SiteBanner;
 use App\Models\SiteExecutive;
 use App\Models\SiteLink;
 use App\Models\SitePage;
+use App\Models\SitePost;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -24,6 +25,7 @@ class SiteHomeController extends Controller
             'links' => SiteLink::active()->get(),
             'director' => SiteExecutive::active()->where('is_featured', true)->first(),
             'pages' => SitePage::where('is_active', true)->get()->keyBy('key'),
+            'posts' => SitePost::live()->limit(6)->get(),
         ]);
     }
 

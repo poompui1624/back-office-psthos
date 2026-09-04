@@ -113,6 +113,27 @@
             </section>
         @endif
 
+        {{-- Latest news --}}
+        @if ($posts->isNotEmpty())
+            <section class="mb-10">
+                <div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 class="text-lg font-bold text-slate-900">ข่าวสารและกิจกรรม</h2>
+
+                    <a href="{{ route('site.news') }}"
+                       class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">
+                        ดูทั้งหมด
+                        <x-icon name="chevron-right" class="h-3.5 w-3.5" />
+                    </a>
+                </div>
+
+                <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($posts as $post)
+                        @include('site._post-card', ['post' => $post])
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         {{-- Quick links --}}
         @if ($links->isNotEmpty())
             <section class="mb-10">
@@ -168,7 +189,7 @@
             </section>
         @endif
 
-        @if ($banners->isEmpty() && $links->isEmpty() && ! $director && $intro->isEmpty())
+        @if ($banners->isEmpty() && $links->isEmpty() && ! $director && $intro->isEmpty() && $posts->isEmpty())
             <div class="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
                 <p class="font-semibold text-slate-700">ยังไม่มีเนื้อหาบนหน้าเว็บ</p>
                 <p class="mt-1.5 text-sm text-slate-500">เพิ่มแบนเนอร์ ลิงก์ หรือข้อมูลโรงพยาบาลได้จากระบบหลังบ้าน</p>

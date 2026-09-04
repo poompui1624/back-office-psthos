@@ -55,6 +55,7 @@ const SMOKE_MODEL_ALIAS = [
     // The public-site routes sit under a /site prefix, so their parameters
     // drop the prefix the model keeps.
     'banner' => 'SiteBanner',
+    'post' => 'SitePost',
     'link' => 'SiteLink',
     'page' => 'SitePage',
     'executive' => 'SiteExecutive',
