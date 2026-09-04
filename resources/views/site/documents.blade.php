@@ -76,11 +76,26 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('site.document.download', $document) }}"
-                           class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
-                            <x-icon name="upload" class="h-4 w-4 rotate-180" />
-                            ดาวน์โหลด
-                        </a>
+                        <div class="flex shrink-0 gap-2">
+                            @if ($document->isViewableInBrowser())
+                                <a href="{{ route('site.document.preview', $document) }}"
+                                   target="_blank" rel="noopener"
+                                   class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+                                    <x-icon name="search" class="h-4 w-4" />
+                                    แสดงไฟล์
+                                </a>
+                            @endif
+
+                            <a href="{{ route('site.document.download', $document) }}"
+                               @class([
+                                   'inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold',
+                                   'bg-brand-500 text-white hover:bg-brand-600' => ! $document->isViewableInBrowser(),
+                                   'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => $document->isViewableInBrowser(),
+                               ])>
+                                <x-icon name="upload" class="h-4 w-4 rotate-180" />
+                                ดาวน์โหลด
+                            </a>
+                        </div>
                     </div>
                 @endforeach
             </div>

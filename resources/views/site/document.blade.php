@@ -40,11 +40,26 @@
                         <div class="mt-5 whitespace-pre-line text-base leading-relaxed text-slate-700">{{ $document->description }}</div>
                     @endif
 
-                    <a href="{{ route('site.document.download', $document) }}"
-                       class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 font-semibold text-white hover:bg-brand-600">
-                        <x-icon name="upload" class="h-4 w-4 rotate-180" />
-                        ดาวน์โหลดเอกสาร
-                    </a>
+                    <div class="mt-6 flex flex-wrap gap-2.5">
+                        @if ($document->isViewableInBrowser())
+                            <a href="{{ route('site.document.preview', $document) }}"
+                               target="_blank" rel="noopener"
+                               class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 font-semibold text-white hover:bg-brand-600">
+                                <x-icon name="search" class="h-4 w-4" />
+                                แสดงไฟล์
+                            </a>
+                        @endif
+
+                        <a href="{{ route('site.document.download', $document) }}"
+                           @class([
+                               'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold',
+                               'bg-brand-500 text-white hover:bg-brand-600' => ! $document->isViewableInBrowser(),
+                               'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => $document->isViewableInBrowser(),
+                           ])>
+                            <x-icon name="upload" class="h-4 w-4 rotate-180" />
+                            ดาวน์โหลด
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Printed onto a notice so people can reach this page on a phone. --}}
@@ -62,5 +77,33 @@
                 </figure>
             </div>
         </article>
+
+        @if ($document->isViewableInBrowser())
+            {{--
+                Shown right here so a visitor can read a notice without saving
+                it first. The iframe points at the preview route, which serves
+                the file under a sandbox policy rather than from the raw
+                storage path.
+            --}}
+            <section class="mt-6">
+                <h2 class="mb-3 text-lg font-bold text-slate-900">แสดงไฟล์</h2>
+
+                <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+                    <iframe src="{{ route('site.document.preview', $document) }}"
+                            title="{{ $document->title }}"
+                            class="h-[75vh] min-h-[420px] w-full"
+                            loading="lazy"></iframe>
+                </div>
+
+                <p class="mt-2 text-center text-xs text-slate-500">
+                    หากไฟล์ไม่แสดง
+                    <a href="{{ route('site.document.preview', $document) }}" target="_blank" rel="noopener"
+                       class="font-semibold text-brand-600 hover:underline">เปิดในแท็บใหม่</a>
+                    หรือ
+                    <a href="{{ route('site.document.download', $document) }}"
+                       class="font-semibold text-brand-600 hover:underline">ดาวน์โหลด</a>
+                </p>
+            </section>
+        @endif
     </div>
 </x-site.shell>

@@ -52,6 +52,37 @@ class SiteDocumentController extends Controller
         ]);
     }
 
+    /**
+     * Serve the file for the browser to render rather than save.
+     *
+     * Restricted to PDF, the only format a browser shows on its own. Serving a
+     * visitor-facing file inline puts it on this site's own origin, so the
+     * response carries a sandbox policy — a PDF can hold scripts, and without
+     * it one would run with the site's privileges — plus nosniff, so a file
+     * whose contents disagree with its extension is not re-interpreted.
+     */
+    public function preview(SiteDocument $siteDocument)
+    {
+        abort_unless($this->isLive($siteDocument), 404);
+        abort_unless($siteDocument->isViewableInBrowser(), 404);
+        abort_unless(Storage::disk('public')->exists($siteDocument->file_path), 404);
+
+        $key = $siteDocument->getKey();
+
+        defer(fn () => SiteDocument::whereKey($key)->increment('view_count'));
+
+        return Storage::disk('public')->response($siteDocument->file_path, $siteDocument->file_original_name, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                HeaderUtils::DISPOSITION_INLINE,
+                $siteDocument->file_original_name,
+                $this->asciiFallback($siteDocument)
+            ),
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function download(SiteDocument $siteDocument)
     {
         abort_unless($this->isLive($siteDocument), 404);
@@ -82,6 +113,21 @@ class SiteDocumentController extends Controller
      */
     private function contentDisposition(SiteDocument $siteDocument): string
     {
+        return HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            $siteDocument->file_original_name,
+            $this->asciiFallback($siteDocument)
+        );
+    }
+
+    /**
+     * An ASCII name for clients that do not read filename*.
+     *
+     * Transliterating Thai leaves nothing behind, so without the final fallback
+     * the browser would be offered a file called ".pdf".
+     */
+    private function asciiFallback(SiteDocument $siteDocument): string
+    {
         $fallback = Str::ascii($siteDocument->file_original_name);
         $fallback = preg_replace('/[^A-Za-z0-9._-]+/', '-', $fallback) ?? '';
         $fallback = trim($fallback, '-');
@@ -91,10 +137,6 @@ class SiteDocumentController extends Controller
             $fallback = 'document-'.$siteDocument->getKey().$extension;
         }
 
-        return HeaderUtils::makeDisposition(
-            HeaderUtils::DISPOSITION_ATTACHMENT,
-            $siteDocument->file_original_name,
-            $fallback
-        );
+        return $fallback;
     }
 }

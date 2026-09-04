@@ -219,3 +219,82 @@ test('category labels come from config, not from the views', function () {
 
     $this->get(route('site.documents'))->assertOk()->assertSee('จัดซื้อจัดจ้าง (แก้ไขแล้ว)');
 });
+
+test('a PDF can be read in the browser', function () {
+    Storage::fake('public');
+
+    $document = SiteDocument::factory()->create(['file_extension' => 'pdf']);
+    Storage::disk('public')->put($document->file_path, '%PDF-1.4 fake');
+
+    $response = $this->get(route('site.document.preview', $document))->assertOk();
+
+    // inline, not attachment: the browser renders it instead of saving it.
+    expect($response->headers->get('content-disposition'))->toStartWith('inline')
+        ->and($response->headers->get('content-type'))->toContain('application/pdf');
+});
+
+test('the preview is sandboxed and not sniffable', function () {
+    Storage::fake('public');
+
+    $document = SiteDocument::factory()->create(['file_extension' => 'pdf']);
+    Storage::disk('public')->put($document->file_path, '%PDF-1.4 fake');
+
+    $response = $this->get(route('site.document.preview', $document))->assertOk();
+
+    // A PDF can carry scripts, and this one is served from the site's own
+    // origin, so it runs with no privileges and is not re-typed by sniffing.
+    expect($response->headers->get('content-security-policy'))->toContain('sandbox')
+        ->and($response->headers->get('x-content-type-options'))->toBe('nosniff');
+});
+
+test('only a PDF is served inline', function (string $extension) {
+    Storage::fake('public');
+
+    $document = SiteDocument::factory()->create(['file_extension' => $extension]);
+    Storage::disk('public')->put($document->file_path, 'contents');
+
+    // The browser cannot render these, and serving arbitrary types inline from
+    // our own origin buys nothing in exchange for the risk.
+    $this->get(route('site.document.preview', $document))->assertNotFound();
+})->with(['docx', 'xlsx', 'pptx', 'doc']);
+
+test('a draft is not previewable either', function () {
+    Storage::fake('public');
+
+    $document = SiteDocument::factory()->draft()->create(['file_extension' => 'pdf']);
+    Storage::disk('public')->put($document->file_path, '%PDF-1.4 fake');
+
+    $this->get(route('site.document.preview', $document))->assertNotFound();
+});
+
+test('reading and downloading are counted separately', function () {
+    Storage::fake('public');
+
+    $document = SiteDocument::factory()->create(['file_extension' => 'pdf']);
+    Storage::disk('public')->put($document->file_path, '%PDF-1.4 fake');
+
+    $this->get(route('site.document.preview', $document))->assertOk();
+    $this->get(route('site.document.preview', $document))->assertOk();
+    $this->get(route('site.document.download', $document))->assertOk();
+
+    $document->refresh();
+
+    // Folding them together would inflate downloads with people who only
+    // glanced at a notice.
+    expect($document->view_count)->toBe(2)
+        ->and($document->download_count)->toBe(1);
+});
+
+test('the page offers a view button for a PDF and not for a Word file', function () {
+    $pdf = SiteDocument::factory()->create(['file_extension' => 'pdf', 'title' => 'ประกาศ PDF']);
+    $word = SiteDocument::factory()->create(['file_extension' => 'docx', 'title' => 'ประกาศ Word']);
+
+    $this->get(route('site.document', $pdf))
+        ->assertOk()
+        ->assertSee('แสดงไฟล์')
+        ->assertSee(e(route('site.document.preview', $pdf)), false);
+
+    $this->get(route('site.document', $word))
+        ->assertOk()
+        ->assertDontSee('แสดงไฟล์');
+});

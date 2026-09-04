@@ -67,6 +67,7 @@ Route::get('/home/posts/{slug}', [SitePostController::class, 'show'])->name('sit
 Route::get('/home/files/{file}', [SitePostController::class, 'download'])->name('site.post.file');
 Route::get('/home/documents', [SiteDocumentController::class, 'index'])->name('site.documents');
 Route::get('/home/documents/{siteDocument}', [SiteDocumentController::class, 'show'])->name('site.document');
+Route::get('/home/documents/{siteDocument}/preview', [SiteDocumentController::class, 'preview'])->name('site.document.preview');
 Route::get('/home/documents/{siteDocument}/download', [SiteDocumentController::class, 'download'])->name('site.document.download');
 Route::get('/home/{key}', [SiteHomeController::class, 'page'])->name('site.page');
 Route::get('/', function () {

@@ -23,6 +23,7 @@ class SiteDocument extends Model
         'published_at' => 'datetime',
         'is_published' => 'boolean',
         'download_count' => 'integer',
+        'view_count' => 'integer',
     ];
 
     /**
@@ -57,6 +58,18 @@ class SiteDocument extends Model
     public function getFileSizeHumanAttribute(): string
     {
         return human_file_size($this->file_size);
+    }
+
+    /**
+     * Whether a browser can render this file itself.
+     *
+     * Only PDF. Word and Excel files would download regardless, and serving
+     * anything else inline from our own origin is a risk not worth taking for
+     * a format the browser cannot show anyway.
+     */
+    public function isViewableInBrowser(): bool
+    {
+        return mb_strtolower((string) $this->file_extension) === 'pdf';
     }
 
     public function getIconAttribute(): string
