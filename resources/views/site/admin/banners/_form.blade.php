@@ -14,7 +14,7 @@
 </x-form.field>
 
 <x-form.field label="ภาพแบนเนอร์" name="image" :required="$banner === null"
-              hint="JPG, PNG หรือ WEBP ไม่เกิน 2MB — แนะนำขนาด 1920×600 พิกเซล ระบบไม่ย่อภาพให้">
+              hint="JPG, PNG หรือ WEBP ไม่เกิน 2MB — ภาพจะแสดงเต็มใบเสมอ ไม่ถูกตัดขอบ สัดส่วนที่พอดีกรอบที่สุดคือ 2:1 เช่น 1600×800 พิกเซล ระบบไม่ย่อภาพให้">
     @if ($banner?->image_url)
         <div class="mb-3">
             <img src="{{ $banner->image_url }}" alt="" class="h-28 rounded-xl object-cover ring-1 ring-slate-200">

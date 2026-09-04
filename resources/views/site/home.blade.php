@@ -9,7 +9,15 @@
     @if ($banners->isNotEmpty())
         <section class="bg-white" data-carousel>
             <div class="relative mx-auto max-w-6xl">
-                <div class="relative aspect-[16/6] overflow-hidden bg-slate-100 sm:rounded-b-3xl">
+                {{--
+                    Posters, not wide strips: the images editors actually upload
+                    run around 2:1, and a wider frame with object-cover was
+                    silently cutting a third off the top and bottom of some.
+                    Every slide is now contained so the whole image is visible,
+                    with a blurred copy of itself filling whatever the frame has
+                    left over.
+                --}}
+                <div class="relative aspect-[2/1] max-h-[460px] overflow-hidden bg-slate-900 sm:rounded-b-3xl">
                     @foreach ($banners as $index => $banner)
                         @php
                             $slide = $banner->title || $banner->subtitle;
@@ -22,10 +30,20 @@
                                 <a href="{{ $banner->link_url }}" class="block h-full w-full">
                             @endif
 
+                            {{-- Same src as the slide, so this costs no extra request. --}}
+                            <img src="{{ $banner->image_url }}" alt="" aria-hidden="true"
+                                 class="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+                                 @if ($index > 1) loading="lazy" @endif>
+
+                            {{--
+                                The second slide is shown a few seconds in, so
+                                deferring it means arriving at a blank frame.
+                                Only the third onward is worth deferring.
+                            --}}
                             <img src="{{ $banner->image_url }}"
                                  alt="{{ $banner->title ?? '' }}"
-                                 @if ($index === 0) fetchpriority="high" @else loading="lazy" @endif
-                                 class="h-full w-full object-cover">
+                                 @if ($index === 0) fetchpriority="high" @elseif ($index > 1) loading="lazy" @endif
+                                 class="relative h-full w-full object-contain">
 
                             @if ($slide)
                                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/80 to-transparent p-5 sm:p-8">
